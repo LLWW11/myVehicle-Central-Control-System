@@ -1,0 +1,3 @@
+pip install pyserial
+pip install winrt-Windows.Devices.Geolocation
+pip install winrt-Windows.Foundation==3.2.1

@@ -1,0 +1,6 @@
+class SystemUICommonApi
+{
+    SIGNAL(serverSendVariant(const QByteArray &ba))
+    SLOT(void onServerVariant(const QByteArray &ba))
+}
+

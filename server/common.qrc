@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>SystemTime.qml</file>
+        <file>FuzzPanel.qml</file>
+    </qresource>
+</RCC>

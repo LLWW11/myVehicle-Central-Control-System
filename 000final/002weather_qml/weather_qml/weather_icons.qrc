@@ -1,0 +1,21 @@
+<RCC>
+    <qresource prefix="/weather">
+        <file alias="1.png">icon/weather/1.png</file>
+        <file alias="2.png">icon/weather/2.png</file>
+        <file alias="3.png">icon/weather/3.png</file>
+        <file alias="4.png">icon/weather/4.png</file>
+        <file alias="5.png">icon/weather/5.png</file>
+        <file alias="6.png">icon/weather/6.png</file>
+        <file alias="7.png">icon/weather/7.png</file>
+        <file alias="8.png">icon/weather/8.png</file>
+        <file alias="9.png">icon/weather/9.png</file>
+        <file alias="10.png">icon/weather/10.png</file>
+        <file alias="11.png">icon/weather/11.png</file>
+        <file alias="12.png">icon/weather/12.png</file>
+        <file alias="local.png">icon/weather/local.png</file>
+    </qresource>
+    <qresource prefix="/">
+        <file alias="beijing.png">icon/backgroung/beijing.png</file>
+        <file alias="weather_logo.png">icon/logo/weather.png</file>
+    </qresource>
+</RCC>

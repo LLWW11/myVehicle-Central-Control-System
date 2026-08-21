@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/main.qml</file>
+        <file>qml/WeatherLayout.qml</file>
+        <file>qml/WeatherCard.qml</file>
+    </qresource>
+</RCC>
