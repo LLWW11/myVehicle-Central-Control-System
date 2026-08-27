@@ -11,7 +11,7 @@
 class FrameStore;
 
 /**
- * @brief 使用 V4L2 MMAP 从固定摄像头节点采集 RGB565 图像的工作线程。
+ * @brief 使用 V4L2 MMAP 从固定摄像头节点采集 RGB565 图像的工作线程
  */
 class CameraCapture : public QThread
 {
@@ -25,9 +25,6 @@ public:
      */
     explicit CameraCapture(FrameStore *frameStore, QObject *parent = nullptr);
 
-    /**
-     * @brief 析构采集线程并确保设备资源已经释放。
-     */
     ~CameraCapture() override;
 
     /**
@@ -116,7 +113,7 @@ private:
     void reportSystemError(const QString &operation);
 
     FrameStore *m_frameStore = nullptr;
-    QAtomicInt m_stopRequested {0};
+    QAtomicInt m_stopRequested{0};
     int m_fd = -1;
     bool m_streaming = false;
     int m_width = 0;

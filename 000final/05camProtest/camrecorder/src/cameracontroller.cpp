@@ -10,13 +10,16 @@
 #include <QFileInfo>
 #include <QStorageInfo>
 
-namespace
-{
-    const QString kUsbPath = QStringLiteral("/mnt/usb");
+namespace {
+const QString kUsbPath = QStringLiteral("/mnt/usb");
 }
 
+/**
+ * @brief 构造控制器并立即检查 U 盘状态。
+ */
 CameraController::CameraController(FrameStore *frameStore, QObject *parent)
-    : QObject(parent), m_frameStore(frameStore)
+    : QObject(parent)
+    , m_frameStore(frameStore)
 {
     m_recordingTimer.setInterval(1000);
     m_recordingTimer.setSingleShot(false);
@@ -29,17 +32,18 @@ CameraController::CameraController(FrameStore *frameStore, QObject *parent)
     refreshUsbStatus();
 }
 
+/**
+ * @brief 析构控制器并释放采集、录像线程。
+ */
 CameraController::~CameraController()
 {
-    if (m_recorder != nullptr && m_recorder->isRunning())
-    {
+    if (m_recorder != nullptr && m_recorder->isRunning()) {
         m_recorder->requestStop();
         m_recorder->wait(10000);
     }
     releaseRecorder();
 
-    if (m_capture != nullptr)
-    {
+    if (m_capture != nullptr) {
         m_capture->requestStop();
         m_capture->wait(3000);
         delete m_capture;
@@ -61,13 +65,15 @@ QString CameraController::errorMessage() const { return m_errorMessage; }
 QString CameraController::lastSavedPath() const { return m_lastSavedPath; }
 quint64 CameraController::previewRevision() const { return m_previewRevision; }
 
+/**
+ * @brief 开启固定的 /dev/video1 摄像头。
+ */
 void CameraController::openCamera()
 {
     if (m_cameraOpen || m_cameraBusy || m_recording || m_stopping)
         return;
 
-    if (m_capture != nullptr)
-    {
+    if (m_capture != nullptr) {
         if (m_capture->isRunning())
             return;
         delete m_capture;
@@ -95,13 +101,11 @@ void CameraController::openCamera()
  */
 void CameraController::closeCamera()
 {
-    if (m_recording || m_stopping)
-    {
+    if (m_recording || m_stopping) {
         setErrorMessage(QStringLiteral("请先停止录像，再关闭摄像头"));
         return;
     }
-    if (m_capture == nullptr || !m_capture->isRunning())
-    {
+    if (m_capture == nullptr || !m_capture->isRunning()) {
         m_cameraOpen = false;
         m_cameraBusy = false;
         setState(QStringLiteral("CameraClosed"), QStringLiteral("摄像头未开启"));
@@ -121,8 +125,7 @@ void CameraController::setMode(int requestedMode)
 {
     if (requestedMode != Mode1 && requestedMode != Mode2)
         return;
-    if (m_recording || m_stopping)
-    {
+    if (m_recording || m_stopping) {
         setErrorMessage(QStringLiteral("录像期间不能切换模式，请先停止录像"));
         return;
     }
@@ -132,15 +135,12 @@ void CameraController::setMode(int requestedMode)
     m_mode = requestedMode;
     emit modeChanged();
     setErrorMessage(QString());
-    if (m_cameraOpen)
-    {
+    if (m_cameraOpen) {
         setState(m_mode == Mode1 ? QStringLiteral("Mode1Preview")
                                  : QStringLiteral("Mode2Idle"),
                  m_mode == Mode1 ? QStringLiteral("Mode1：仅采集和预览")
                                  : QStringLiteral("Mode2：可开始录像"));
-    }
-    else
-    {
+    } else {
         setState(QStringLiteral("CameraClosed"),
                  m_mode == Mode1 ? QStringLiteral("Mode1 已选择，请开启摄像头")
                                  : QStringLiteral("Mode2 已选择，请开启摄像头"));
@@ -152,13 +152,11 @@ void CameraController::setMode(int requestedMode)
  */
 void CameraController::startRecording()
 {
-    if (m_mode != Mode2)
-    {
+    if (m_mode != Mode2) {
         setErrorMessage(QStringLiteral("只有 Mode2 可以录像"));
         return;
     }
-    if (!m_cameraOpen || m_cameraBusy)
-    {
+    if (!m_cameraOpen || m_cameraBusy) {
         setErrorMessage(QStringLiteral("请先开启摄像头并等待预览画面"));
         return;
     }
@@ -166,8 +164,7 @@ void CameraController::startRecording()
         return;
 
     refreshUsbStatus();
-    if (!m_usbReady)
-    {
+    if (!m_usbReady) {
         setErrorMessage(QStringLiteral("/mnt/usb 未挂载或不可写，无法开始录像"));
         return;
     }
@@ -214,18 +211,17 @@ void CameraController::stopRecording()
 void CameraController::refreshUsbStatus()
 {
     const QFileInfo info(kUsbPath);
-    const bool ready = info.exists() && info.isDir() && info.isWritable() && isMountedPath(kUsbPath);
+    const bool ready = info.exists() && info.isDir() && info.isWritable()
+            && isMountedPath(kUsbPath);
     const QString status = ready
-                               ? QStringLiteral("U盘已挂载且可写：/mnt/usb")
-                               : QStringLiteral("U盘未就绪：请将U盘挂载到 /mnt/usb");
+            ? QStringLiteral("U盘已挂载且可写：/mnt/usb")
+            : QStringLiteral("U盘未就绪：请将U盘挂载到 /mnt/usb");
 
-    if (m_usbReady != ready)
-    {
+    if (m_usbReady != ready) {
         m_usbReady = ready;
         emit usbReadyChanged();
     }
-    if (m_usbStatus != status)
-    {
+    if (m_usbStatus != status) {
         m_usbStatus = status;
         emit usbStatusChanged();
     }
@@ -236,16 +232,13 @@ void CameraController::refreshUsbStatus()
  */
 bool CameraController::requestExit()
 {
-    if (m_recording || m_stopping || m_recorder != nullptr)
-    {
+    if (m_recording || m_stopping || m_recorder != nullptr) {
         setErrorMessage(QStringLiteral("录像正在进行或收尾，请先停止录像后再退出"));
         return false;
     }
-    if (m_capture != nullptr && m_capture->isRunning())
-    {
+    if (m_capture != nullptr && m_capture->isRunning()) {
         m_capture->requestStop();
-        if (!m_capture->wait(3000))
-        {
+        if (!m_capture->wait(3000)) {
             setErrorMessage(QStringLiteral("摄像头线程尚未停止，请稍后重试退出"));
             return false;
         }
@@ -259,8 +252,7 @@ bool CameraController::requestExit()
 void CameraController::onCaptureStarted(int width, int height, int bytesPerLine)
 {
     Q_UNUSED(bytesPerLine)
-    if (width != 640 || height != 480)
-    {
+    if (width != 640 || height != 480) {
         setErrorMessage(QStringLiteral("摄像头实际分辨率不是 640×480"));
         closeCamera();
         return;
@@ -268,8 +260,7 @@ void CameraController::onCaptureStarted(int width, int height, int bytesPerLine)
 
     m_cameraBusy = false;
     emit cameraBusyChanged();
-    if (!m_cameraOpen)
-    {
+    if (!m_cameraOpen) {
         m_cameraOpen = true;
         emit cameraOpenChanged();
     }
@@ -289,12 +280,9 @@ void CameraController::onCaptureError(const QString &message)
     if (m_recorder == nullptr || !m_recorder->isRunning())
         return;
 
-    if (m_recording)
-    {
+    if (m_recording) {
         stopRecording();
-    }
-    else
-    {
+    } else {
         // 文件创建阶段也必须唤醒录像线程，避免摄像头掉线后一直等待首帧。
         m_stopping = true;
         emit stoppingChanged();
@@ -341,19 +329,16 @@ void CameraController::onRecordingFinished(bool success, const QString &path,
                                            const QString &message)
 {
     m_recordingTimer.stop();
-    if (m_recording)
-    {
+    if (m_recording) {
         m_recording = false;
         emit recordingChanged();
     }
-    if (m_stopping)
-    {
+    if (m_stopping) {
         m_stopping = false;
         emit stoppingChanged();
     }
 
-    if (success)
-    {
+    if (success) {
         m_lastSavedPath = path;
         emit lastSavedPathChanged();
         setErrorMessage(QString());
@@ -361,11 +346,9 @@ void CameraController::onRecordingFinished(bool success, const QString &path,
                               : QStringLiteral("CameraClosed"),
                  m_cameraOpen ? message
                               : QStringLiteral("录像已保存，但摄像头已经停止"));
-    }
-    else
-    {
+    } else {
         setErrorMessage(QStringLiteral("%1；未完成文件保留在：%2")
-                            .arg(message, path));
+                        .arg(message, path));
         setState(QStringLiteral("Error"), QStringLiteral("录像失败"));
     }
     releaseRecorder();
@@ -400,13 +383,11 @@ void CameraController::onPreviewTimer()
  */
 void CameraController::setState(const QString &state, const QString &message)
 {
-    if (m_state != state)
-    {
+    if (m_state != state) {
         m_state = state;
         emit stateChanged();
     }
-    if (m_statusMessage != message)
-    {
+    if (m_statusMessage != message) {
         m_statusMessage = message;
         emit statusMessageChanged();
     }
@@ -433,8 +414,7 @@ bool CameraController::isMountedPath(const QString &path) const
         return false;
 
     const QList<QStorageInfo> volumes = QStorageInfo::mountedVolumes();
-    for (const QStorageInfo &volume : volumes)
-    {
+    for (const QStorageInfo &volume : volumes) {
         const QString rootPath = QFileInfo(volume.rootPath()).canonicalFilePath();
         if (volume.isValid() && volume.isReady() && rootPath == canonicalPath)
             return true;
@@ -451,12 +431,11 @@ bool CameraController::buildRecordingPaths(QString *partPath, QString *finalPath
         return false;
 
     const QString timestamp = QDateTime::currentDateTime()
-                                  .toString(QStringLiteral("yyyyMMdd_HHmmss"));
+            .toString(QStringLiteral("yyyyMMdd_HHmmss"));
     const QString baseName = QStringLiteral("cam_rec_%1.avi").arg(timestamp);
     *finalPath = QDir(kUsbPath).filePath(baseName);
     *partPath = *finalPath + QStringLiteral(".part");
-    if (QFile::exists(*finalPath) || QFile::exists(*partPath))
-    {
+    if (QFile::exists(*finalPath) || QFile::exists(*partPath)) {
         setErrorMessage(QStringLiteral("同名录像文件已存在，请一秒后重试"));
         return false;
     }

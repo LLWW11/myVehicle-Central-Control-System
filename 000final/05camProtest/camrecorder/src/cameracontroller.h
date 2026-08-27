@@ -8,8 +8,9 @@ class AviRecorderWorker;
 class CameraCapture;
 class FrameStore;
 
-// 管理摄像头、两种工作模式、U 盘状态和录像线程的 QML 控制器
-
+/**
+ * @brief 管理摄像头、两种工作模式、U 盘状态和录像线程的 QML 控制器。
+ */
 class CameraController : public QObject
 {
     Q_OBJECT
