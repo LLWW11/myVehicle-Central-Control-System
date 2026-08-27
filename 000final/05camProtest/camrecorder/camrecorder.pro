@@ -12,6 +12,7 @@ INCLUDEPATH += \
     src/camera \
     src/recorder \
     src/codec
+    src/rtsp
 
 SOURCES += \
     main.cpp \
@@ -23,7 +24,8 @@ SOURCES += \
     src/recorder/aviwriter.cpp \
     src/codec/jpegencoder.cpp \
     src/codec/jpegframestore.cpp \
-    src/jpegencoderworker.cpp
+    src/jpegencoderworker.cpp \
+    src/rtsp/rtspserverworker.cpp
 
 
 HEADERS += \
@@ -35,7 +37,8 @@ HEADERS += \
     src/recorder/aviwriter.h \
     src/codec/jpegencoder.h \
     src/codec/jpegframestore.h \
-    src/jpegencoderworker.h
+    src/jpegencoderworker.h \
+    src/rtsp/rtspserverworker.h
 
 
 RESOURCES += qml.qrc
