@@ -3,6 +3,8 @@
 #include "camera/cameracapture.h"
 #include "camera/framestore.h"
 #include "recorder/avirecorderworker.h"
+#include "jpegencoderworker.h"
+#include "jpegframestore.h"
 
 #include <QDateTime>
 #include <QDir>
@@ -10,17 +12,15 @@
 #include <QFileInfo>
 #include <QStorageInfo>
 
-namespace {
-const QString kUsbPath = QStringLiteral("/mnt/usb");
+namespace
+{
+    const QString kUsbPath = QStringLiteral("/mnt/usb");
 }
 
-/**
- * @brief 构造控制器并立即检查 U 盘状态。
- */
 CameraController::CameraController(FrameStore *frameStore, QObject *parent)
-    : QObject(parent)
-    , m_frameStore(frameStore)
+    : QObject(parent), m_frameStore(frameStore)
 {
+    m_jpegFrameStore = new JpegFrameStore();
     m_recordingTimer.setInterval(1000);
     m_recordingTimer.setSingleShot(false);
     connect(&m_recordingTimer, &QTimer::timeout,
@@ -32,18 +32,18 @@ CameraController::CameraController(FrameStore *frameStore, QObject *parent)
     refreshUsbStatus();
 }
 
-/**
- * @brief 析构控制器并释放采集、录像线程。
- */
 CameraController::~CameraController()
 {
-    if (m_recorder != nullptr && m_recorder->isRunning()) {
+    if (m_recorder != nullptr && m_recorder->isRunning())
+    {
         m_recorder->requestStop();
         m_recorder->wait(10000);
     }
-    releaseRecorder();
-
-    if (m_capture != nullptr) {
+    releaseRecorder();    // 先停止录像
+    releaseJpegEncoder(); // 再停止编码
+    delete m_jpegFrameStore;
+    if (m_capture != nullptr)
+    {
         m_capture->requestStop();
         m_capture->wait(3000);
         delete m_capture;
@@ -65,15 +65,13 @@ QString CameraController::errorMessage() const { return m_errorMessage; }
 QString CameraController::lastSavedPath() const { return m_lastSavedPath; }
 quint64 CameraController::previewRevision() const { return m_previewRevision; }
 
-/**
- * @brief 开启固定的 /dev/video1 摄像头。
- */
 void CameraController::openCamera()
 {
     if (m_cameraOpen || m_cameraBusy || m_recording || m_stopping)
         return;
 
-    if (m_capture != nullptr) {
+    if (m_capture != nullptr)
+    {
         if (m_capture->isRunning())
             return;
         delete m_capture;
@@ -96,16 +94,15 @@ void CameraController::openCamera()
     m_capture->start();
 }
 
-/**
- * @brief 在非录像状态停止摄像头并释放资源。
- */
 void CameraController::closeCamera()
 {
-    if (m_recording || m_stopping) {
+    if (m_recording || m_stopping)
+    {
         setErrorMessage(QStringLiteral("请先停止录像，再关闭摄像头"));
         return;
     }
-    if (m_capture == nullptr || !m_capture->isRunning()) {
+    if (m_capture == nullptr || !m_capture->isRunning())
+    {
         m_cameraOpen = false;
         m_cameraBusy = false;
         setState(QStringLiteral("CameraClosed"), QStringLiteral("摄像头未开启"));
@@ -118,14 +115,12 @@ void CameraController::closeCamera()
     m_capture->requestStop();
 }
 
-/**
- * @brief 切换 Mode1 或 Mode2，摄像头已开启时保持不断流。
- */
 void CameraController::setMode(int requestedMode)
 {
     if (requestedMode != Mode1 && requestedMode != Mode2)
         return;
-    if (m_recording || m_stopping) {
+    if (m_recording || m_stopping)
+    {
         setErrorMessage(QStringLiteral("录像期间不能切换模式，请先停止录像"));
         return;
     }
@@ -135,28 +130,30 @@ void CameraController::setMode(int requestedMode)
     m_mode = requestedMode;
     emit modeChanged();
     setErrorMessage(QString());
-    if (m_cameraOpen) {
+    if (m_cameraOpen)
+    {
         setState(m_mode == Mode1 ? QStringLiteral("Mode1Preview")
                                  : QStringLiteral("Mode2Idle"),
                  m_mode == Mode1 ? QStringLiteral("Mode1：仅采集和预览")
                                  : QStringLiteral("Mode2：可开始录像"));
-    } else {
+    }
+    else
+    {
         setState(QStringLiteral("CameraClosed"),
                  m_mode == Mode1 ? QStringLiteral("Mode1 已选择，请开启摄像头")
                                  : QStringLiteral("Mode2 已选择，请开启摄像头"));
     }
 }
 
-/**
- * @brief 在 Mode2 创建录像线程并开始写入 U 盘。
- */
 void CameraController::startRecording()
 {
-    if (m_mode != Mode2) {
+    if (m_mode != Mode2)
+    {
         setErrorMessage(QStringLiteral("只有 Mode2 可以录像"));
         return;
     }
-    if (!m_cameraOpen || m_cameraBusy) {
+    if (!m_cameraOpen || m_cameraBusy)
+    {
         setErrorMessage(QStringLiteral("请先开启摄像头并等待预览画面"));
         return;
     }
@@ -164,7 +161,8 @@ void CameraController::startRecording()
         return;
 
     refreshUsbStatus();
-    if (!m_usbReady) {
+    if (!m_usbReady)
+    {
         setErrorMessage(QStringLiteral("/mnt/usb 未挂载或不可写，无法开始录像"));
         return;
     }
@@ -177,11 +175,11 @@ void CameraController::startRecording()
     setErrorMessage(QString());
     m_recordingSeconds = 0;
     emit recordingSecondsChanged();
-    m_stopping = true; // 文件成功建立前视为忙状态，阻止其他操作。
+    m_stopping = true; // 文件成功建立前视为忙状态，阻止其他操作
     emit stoppingChanged();
     setState(QStringLiteral("StartingRecord"), QStringLiteral("正在创建录像文件…"));
 
-    m_recorder = new AviRecorderWorker(m_frameStore, partPath, finalPath, this);
+    m_recorder = new AviRecorderWorker(m_jpegFrameStore, partPath, finalPath, this);
     connect(m_recorder, &AviRecorderWorker::recordingStarted,
             this, &CameraController::onRecordingStarted,
             Qt::QueuedConnection);
@@ -191,9 +189,6 @@ void CameraController::startRecording()
     m_recorder->start();
 }
 
-/**
- * @brief 请求停止录像并开始 AVI 安全收尾。
- */
 void CameraController::stopRecording()
 {
     if (!m_recording || m_recorder == nullptr || m_stopping)
@@ -205,40 +200,38 @@ void CameraController::stopRecording()
     m_recorder->requestStop();
 }
 
-/**
- * @brief 重新检查 /mnt/usb 是否已挂载且可写。
- */
 void CameraController::refreshUsbStatus()
 {
     const QFileInfo info(kUsbPath);
-    const bool ready = info.exists() && info.isDir() && info.isWritable()
-            && isMountedPath(kUsbPath);
+    const bool ready = info.exists() && info.isDir() && info.isWritable() && isMountedPath(kUsbPath);
     const QString status = ready
-            ? QStringLiteral("U盘已挂载且可写：/mnt/usb")
-            : QStringLiteral("U盘未就绪：请将U盘挂载到 /mnt/usb");
+                               ? QStringLiteral("U盘已挂载且可写：/mnt/usb")
+                               : QStringLiteral("U盘未就绪：请将U盘挂载到 /mnt/usb");
 
-    if (m_usbReady != ready) {
+    if (m_usbReady != ready)
+    {
         m_usbReady = ready;
         emit usbReadyChanged();
     }
-    if (m_usbStatus != status) {
+    if (m_usbStatus != status)
+    {
         m_usbStatus = status;
         emit usbStatusChanged();
     }
 }
 
-/**
- * @brief 处理 QML 关闭请求；录像中会拒绝关闭。
- */
 bool CameraController::requestExit()
 {
-    if (m_recording || m_stopping || m_recorder != nullptr) {
+    if (m_recording || m_stopping || m_recorder != nullptr)
+    {
         setErrorMessage(QStringLiteral("录像正在进行或收尾，请先停止录像后再退出"));
         return false;
     }
-    if (m_capture != nullptr && m_capture->isRunning()) {
+    if (m_capture != nullptr && m_capture->isRunning())
+    {
         m_capture->requestStop();
-        if (!m_capture->wait(3000)) {
+        if (!m_capture->wait(3000))
+        {
             setErrorMessage(QStringLiteral("摄像头线程尚未停止，请稍后重试退出"));
             return false;
         }
@@ -246,13 +239,11 @@ bool CameraController::requestExit()
     return true;
 }
 
-/**
- * @brief 处理摄像头第一帧到达。
- */
 void CameraController::onCaptureStarted(int width, int height, int bytesPerLine)
 {
     Q_UNUSED(bytesPerLine)
-    if (width != 640 || height != 480) {
+    if (width != 640 || height != 480)
+    {
         setErrorMessage(QStringLiteral("摄像头实际分辨率不是 640×480"));
         closeCamera();
         return;
@@ -260,7 +251,8 @@ void CameraController::onCaptureStarted(int width, int height, int bytesPerLine)
 
     m_cameraBusy = false;
     emit cameraBusyChanged();
-    if (!m_cameraOpen) {
+    if (!m_cameraOpen)
+    {
         m_cameraOpen = true;
         emit cameraOpenChanged();
     }
@@ -269,21 +261,22 @@ void CameraController::onCaptureStarted(int width, int height, int bytesPerLine)
                              : QStringLiteral("Mode2Idle"),
              m_mode == Mode1 ? QStringLiteral("Mode1：仅采集和预览")
                              : QStringLiteral("Mode2：可开始录像"));
+    startJpegEncoder();
 }
 
-/**
- * @brief 处理摄像头线程错误。
- */
 void CameraController::onCaptureError(const QString &message)
 {
     setErrorMessage(message);
     if (m_recorder == nullptr || !m_recorder->isRunning())
         return;
 
-    if (m_recording) {
+    if (m_recording)
+    {
         stopRecording();
-    } else {
-        // 文件创建阶段也必须唤醒录像线程，避免摄像头掉线后一直等待首帧。
+    }
+    else
+    {
+        // 文件创建阶段也必须唤醒录像线程，避免摄像头掉线后一直等待首帧
         m_stopping = true;
         emit stoppingChanged();
         setState(QStringLiteral("Stopping"),
@@ -292,11 +285,9 @@ void CameraController::onCaptureError(const QString &message)
     }
 }
 
-/**
- * @brief 处理摄像头线程退出。
- */
 void CameraController::onCaptureStopped()
 {
+    releaseJpegEncoder();
     m_previewTimer.stop();
     const bool wasOpen = m_cameraOpen;
     m_cameraOpen = false;
@@ -309,9 +300,6 @@ void CameraController::onCaptureStopped()
     setState(QStringLiteral("CameraClosed"), QStringLiteral("摄像头未开启"));
 }
 
-/**
- * @brief 处理录像文件成功建立。
- */
 void CameraController::onRecordingStarted()
 {
     m_stopping = false;
@@ -322,23 +310,23 @@ void CameraController::onRecordingStarted()
     setState(QStringLiteral("Recording"), QStringLiteral("正在录像到 /mnt/usb"));
 }
 
-/**
- * @brief 处理录像线程收尾结果。
- */
 void CameraController::onRecordingFinished(bool success, const QString &path,
                                            const QString &message)
 {
     m_recordingTimer.stop();
-    if (m_recording) {
+    if (m_recording)
+    {
         m_recording = false;
         emit recordingChanged();
     }
-    if (m_stopping) {
+    if (m_stopping)
+    {
         m_stopping = false;
         emit stoppingChanged();
     }
 
-    if (success) {
+    if (success)
+    {
         m_lastSavedPath = path;
         emit lastSavedPathChanged();
         setErrorMessage(QString());
@@ -346,9 +334,11 @@ void CameraController::onRecordingFinished(bool success, const QString &path,
                               : QStringLiteral("CameraClosed"),
                  m_cameraOpen ? message
                               : QStringLiteral("录像已保存，但摄像头已经停止"));
-    } else {
+    }
+    else
+    {
         setErrorMessage(QStringLiteral("%1；未完成文件保留在：%2")
-                        .arg(message, path));
+                            .arg(message, path));
         setState(QStringLiteral("Error"), QStringLiteral("录像失败"));
     }
     releaseRecorder();
@@ -356,7 +346,7 @@ void CameraController::onRecordingFinished(bool success, const QString &path,
 }
 
 /**
- * @brief 每秒更新录像计时。
+ * @brief 每秒更新录像计时
  */
 void CameraController::onRecordingTimer()
 {
@@ -364,9 +354,6 @@ void CameraController::onRecordingTimer()
     emit recordingSecondsChanged();
 }
 
-/**
- * @brief 以固定频率读取最新帧版本并刷新 QML 预览。
- */
 void CameraController::onPreviewTimer()
 {
     if (m_frameStore == nullptr)
@@ -378,24 +365,20 @@ void CameraController::onPreviewTimer()
     emit previewRevisionChanged();
 }
 
-/**
- * @brief 设置状态名称和用户提示。
- */
 void CameraController::setState(const QString &state, const QString &message)
 {
-    if (m_state != state) {
+    if (m_state != state)
+    {
         m_state = state;
         emit stateChanged();
     }
-    if (m_statusMessage != message) {
+    if (m_statusMessage != message)
+    {
         m_statusMessage = message;
         emit statusMessageChanged();
     }
 }
 
-/**
- * @brief 设置并通知错误信息。
- */
 void CameraController::setErrorMessage(const QString &message)
 {
     if (m_errorMessage == message)
@@ -404,9 +387,6 @@ void CameraController::setErrorMessage(const QString &message)
     emit errorMessageChanged();
 }
 
-/**
- * @brief 检查路径是否为真实挂载点。
- */
 bool CameraController::isMountedPath(const QString &path) const
 {
     const QString canonicalPath = QFileInfo(path).canonicalFilePath();
@@ -414,7 +394,8 @@ bool CameraController::isMountedPath(const QString &path) const
         return false;
 
     const QList<QStorageInfo> volumes = QStorageInfo::mountedVolumes();
-    for (const QStorageInfo &volume : volumes) {
+    for (const QStorageInfo &volume : volumes)
+    {
         const QString rootPath = QFileInfo(volume.rootPath()).canonicalFilePath();
         if (volume.isValid() && volume.isReady() && rootPath == canonicalPath)
             return true;
@@ -422,29 +403,24 @@ bool CameraController::isMountedPath(const QString &path) const
     return false;
 }
 
-/**
- * @brief 为下一段录像生成唯一的临时路径与最终路径。
- */
 bool CameraController::buildRecordingPaths(QString *partPath, QString *finalPath)
 {
     if (partPath == nullptr || finalPath == nullptr)
         return false;
 
     const QString timestamp = QDateTime::currentDateTime()
-            .toString(QStringLiteral("yyyyMMdd_HHmmss"));
+                                  .toString(QStringLiteral("yyyyMMdd_HHmmss"));
     const QString baseName = QStringLiteral("cam_rec_%1.avi").arg(timestamp);
     *finalPath = QDir(kUsbPath).filePath(baseName);
     *partPath = *finalPath + QStringLiteral(".part");
-    if (QFile::exists(*finalPath) || QFile::exists(*partPath)) {
+    if (QFile::exists(*finalPath) || QFile::exists(*partPath))
+    {
         setErrorMessage(QStringLiteral("同名录像文件已存在，请一秒后重试"));
         return false;
     }
     return true;
 }
 
-/**
- * @brief 删除并清空已结束的录像线程对象。
- */
 void CameraController::releaseRecorder()
 {
     if (m_recorder == nullptr)
@@ -453,4 +429,39 @@ void CameraController::releaseRecorder()
         m_recorder->wait();
     delete m_recorder;
     m_recorder = nullptr;
+}
+
+void CameraController::startJpegEncoder()
+{
+    if (m_jpegEncoderWorker != nullptr || m_frameStore == nullptr)
+        return;
+
+    m_jpegEncoderWorker =
+        new JpegEncoderWorker(m_frameStore, m_jpegFrameStore, this);
+    connect(m_jpegEncoderWorker, &JpegEncoderWorker::encoderError,
+            this, &CameraController::onEncoderError,
+            Qt::QueuedConnection); // 跨线程信号必须 Queued
+    m_jpegEncoderWorker->start();
+}
+
+void CameraController::releaseJpegEncoder()
+{
+    if (m_jpegEncoderWorker != nullptr)
+    {
+        if (m_jpegEncoderWorker->isRunning())
+        {
+            m_jpegEncoderWorker->requestStop();
+            m_jpegEncoderWorker->wait(5000);
+        }
+        delete m_jpegEncoderWorker;
+        m_jpegEncoderWorker = nullptr;
+    }
+    if (m_jpegFrameStore != nullptr)
+        m_jpegFrameStore->clear(); // clear 会 ++generation 且使帧无效，
+                                   // 下次录像不会把旧 JPEG 当新帧写进去
+}
+
+void CameraController::onEncoderError(const QString &message)
+{
+    setErrorMessage(message);
 }

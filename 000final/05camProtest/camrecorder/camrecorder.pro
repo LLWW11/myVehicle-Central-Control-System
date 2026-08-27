@@ -10,7 +10,8 @@ CODECFORSRC = UTF-8
 INCLUDEPATH += \
     src \
     src/camera \
-    src/recorder
+    src/recorder \
+    src/codec
 
 SOURCES += \
     main.cpp \
@@ -19,7 +20,11 @@ SOURCES += \
     src/camera/framestore.cpp \
     src/camera/previewimageprovider.cpp \
     src/recorder/avirecorderworker.cpp \
-    src/recorder/aviwriter.cpp
+    src/recorder/aviwriter.cpp \
+    src/codec/jpegencoder.cpp \
+    src/codec/jpegframestore.cpp \
+    src/jpegencoderworker.cpp
+
 
 HEADERS += \
     src/cameracontroller.h \
@@ -27,7 +32,11 @@ HEADERS += \
     src/camera/framestore.h \
     src/camera/previewimageprovider.h \
     src/recorder/avirecorderworker.h \
-    src/recorder/aviwriter.h
+    src/recorder/aviwriter.h \
+    src/codec/jpegencoder.h \
+    src/codec/jpegframestore.h \
+    src/jpegencoderworker.h
+
 
 RESOURCES += qml.qrc
 

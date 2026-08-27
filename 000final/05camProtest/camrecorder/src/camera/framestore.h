@@ -27,9 +27,7 @@ public:
                     int width,
                     int height,
                     int bytesPerLine);
-    // 获取最新的CameraFrame
     CameraFrame latest() const;
-
     // 等待获取最新一帧，获得新帧时返回 true，超时或仅被唤醒时返回 false
     bool waitForNewFrame(quint64 previousGeneration,
                          int timeoutMs,

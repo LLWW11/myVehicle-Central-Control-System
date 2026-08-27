@@ -1,16 +1,14 @@
 #include "aviwriter.h"
 
 #include "camera/framestore.h"
+#include "jpegencoder.h"
 
 #include <QFile>
 
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include <setjmp.h>
 #include <unistd.h>
-
-#include <jpeglib.h>
 
 namespace
 {
@@ -34,37 +32,6 @@ namespace
         std::memcpy(destination, fourcc, 4);
     }
 
-    struct JpegErrorManager
-    {
-        jpeg_error_mgr base;
-        jmp_buf jumpBuffer;
-        char message[JMSG_LENGTH_MAX];
-    };
-
-    /**
-     * @brief 保存一次 JPEG 编码的全部可变状态，确保 longjmp 后仍可安全清理。
-     */
-    struct JpegEncodeState
-    {
-        jpeg_compress_struct compressor;
-        JpegErrorManager errors;
-        unsigned char *output = nullptr;
-        unsigned char *rgbRow = nullptr;
-        // unsigned long outputSize = 0;
-        size_t outputSize = 0;
-        bool compressorCreated = false;
-    };
-
-    /**
-     * @brief 捕获 libjpeg 致命错误并跳回当前编码函数。
-     */
-    void onJpegError(j_common_ptr common)
-    {
-        JpegErrorManager *manager = reinterpret_cast<JpegErrorManager *>(common->err);
-        (*common->err->format_message)(common, manager->message);
-        longjmp(manager->jumpBuffer, 1);
-    }
-
 } // namespace
 
 AviWriter::AviWriter() = default;
@@ -75,7 +42,7 @@ AviWriter::~AviWriter()
 }
 
 /**
- * @brief 创建 AVI 临时文件并写入初始文件头。
+ * @brief 创建 AVI 临时文件并写入初始文件头
  */
 bool AviWriter::open(const QString &partPath, int width, int height,
                      int fps, int jpegQuality)
@@ -117,7 +84,7 @@ bool AviWriter::open(const QString &partPath, int width, int height,
 }
 
 /**
- * @brief 将一帧 RGB565 数据压缩并写入 AVI。
+ * @brief 将一帧 RGB565 数据压缩并写入 AVI
  */
 bool AviWriter::appendFrame(const CameraFrame &frame)
 {
@@ -133,8 +100,30 @@ bool AviWriter::appendFrame(const CameraFrame &frame)
     }
 
     QByteArray jpeg;
-    if (!encodeJpeg(frame, &jpeg))
+    QString error;
+    if (!JpegEncoder::encode(frame, m_jpegQuality, &jpeg, &error))
+    {
+        m_errorString = error;
         return false;
+    }
+    return appendJpegFrame(jpeg);
+}
+
+/**
+ * @brief 将一段已经编码好的 JPEG 帧写入 AVI
+ */
+bool AviWriter::appendJpegFrame(const QByteArray &jpeg)
+{
+    if (m_file == nullptr)
+    {
+        m_errorString = QStringLiteral("AVI 文件尚未打开");
+        return false;
+    }
+    if (jpeg.size() < 4 || static_cast<unsigned char>(jpeg[0]) != 0xff || static_cast<unsigned char>(jpeg[1]) != 0xd8)
+    {
+        m_errorString = QStringLiteral("JPEG 帧无效");
+        return false;
+    }
 
     IndexEntry entry;
     entry.offset = m_chunkOffset;
@@ -169,7 +158,7 @@ bool AviWriter::appendFrame(const CameraFrame &frame)
 }
 
 /**
- * @brief 写入 idx1 索引、回填文件头并同步关闭文件。
+ * @brief 写入 idx1 索引、回填文件头并同步关闭文件
  */
 bool AviWriter::finalize()
 {
@@ -248,9 +237,6 @@ bool AviWriter::finalize()
     return true;
 }
 
-/**
- * @brief 放弃当前录像并关闭文件，不写入成功收尾。
- */
 void AviWriter::abort()
 {
     if (m_file != nullptr)
@@ -266,7 +252,7 @@ QString AviWriter::errorString() const
 }
 
 /**
- * @brief 获取已经成功写入的帧数。
+ * @brief 获取已经成功写入的帧数
  */
 quint32 AviWriter::frameCount() const
 {
@@ -274,7 +260,7 @@ quint32 AviWriter::frameCount() const
 }
 
 /**
- * @brief 根据当前视频参数构造 232 字节 AVI 头。
+ * @brief 根据当前视频参数构造 232 字节 AVI 头
  */
 QByteArray AviWriter::buildHeader() const
 {
@@ -319,87 +305,7 @@ QByteArray AviWriter::buildHeader() const
 }
 
 /**
- * @brief 将 RGB565 摄像头帧压缩为内存中的 JPEG
- */
-bool AviWriter::encodeJpeg(const CameraFrame &frame, QByteArray *jpeg)
-{
-    if (jpeg == nullptr)
-        return false;
-
-    JpegEncodeState *state = new JpegEncodeState();
-    std::memset(&state->compressor, 0, sizeof(state->compressor));
-    std::memset(&state->errors, 0, sizeof(state->errors));
-    state->compressor.err = jpeg_std_error(&state->errors.base);
-    state->errors.base.error_exit = onJpegError;
-
-    if (setjmp(state->errors.jumpBuffer) != 0)
-    {
-        if (state->compressorCreated)
-            jpeg_destroy_compress(&state->compressor);
-        std::free(state->output);
-        std::free(state->rgbRow);
-        m_errorString = QStringLiteral("JPEG 编码失败：%1")
-                            .arg(QString::fromLocal8Bit(state->errors.message));
-        delete state;
-        return false;
-    }
-
-    jpeg_create_compress(&state->compressor);
-    state->compressorCreated = true;
-    jpeg_mem_dest(&state->compressor, &state->output, &state->outputSize);
-    state->compressor.image_width = static_cast<JDIMENSION>(m_width);
-    state->compressor.image_height = static_cast<JDIMENSION>(m_height);
-    state->compressor.input_components = 3;
-    state->compressor.in_color_space = JCS_RGB;
-    jpeg_set_defaults(&state->compressor);
-    jpeg_set_quality(&state->compressor, m_jpegQuality, TRUE);
-    jpeg_start_compress(&state->compressor, TRUE);
-
-    state->rgbRow = static_cast<unsigned char *>(
-        std::malloc(static_cast<size_t>(m_width) * 3U));
-    if (state->rgbRow == nullptr)
-    {
-        jpeg_destroy_compress(&state->compressor);
-        state->compressorCreated = false;
-        std::free(state->output);
-        m_errorString = QStringLiteral("申请 JPEG 行缓冲区失败");
-        delete state;
-        return false;
-    }
-
-    JSAMPROW rowPointer[1];
-    while (state->compressor.next_scanline < state->compressor.image_height)
-    {
-        const uchar *source = reinterpret_cast<const uchar *>(frame.bytes.constData()) + static_cast<int>(state->compressor.next_scanline) * frame.bytesPerLine;
-        uchar *destination = state->rgbRow;
-        for (int x = 0; x < m_width; ++x)
-        {
-            const quint16 pixel = static_cast<quint16>(source[0] | (static_cast<quint16>(source[1]) << 8U));
-            destination[0] = static_cast<uchar>((pixel >> 8U) & 0xf8U);
-            destination[1] = static_cast<uchar>((pixel >> 3U) & 0xfcU);
-            destination[2] = static_cast<uchar>((pixel << 3U) & 0xf8U);
-            source += 2;
-            destination += 3;
-        }
-        rowPointer[0] = state->rgbRow;
-        jpeg_write_scanlines(&state->compressor, rowPointer, 1);
-    }
-
-    jpeg_finish_compress(&state->compressor);
-    jpeg_destroy_compress(&state->compressor);
-    state->compressorCreated = false;
-    *jpeg = QByteArray(reinterpret_cast<const char *>(state->output),
-                       static_cast<int>(state->outputSize));
-    std::free(state->output);
-    std::free(state->rgbRow);
-    state->output = nullptr;
-    state->rgbRow = nullptr;
-    delete state;
-    return true;
-}
-
-/**
- * @brief 写入精确数量的字节并统一记录错误。
+ * @brief 写入精确数量的字节并统一记录错误
  */
 bool AviWriter::writeBytes(const void *data, size_t size)
 {
@@ -413,7 +319,7 @@ bool AviWriter::writeBytes(const void *data, size_t size)
 }
 
 /**
- * @brief 跳转到指定文件偏移并写入一个小端 32 位整数。
+ * @brief 跳转到指定文件偏移并写入一个小端 32 位整数
  */
 bool AviWriter::patchLe32(long offset, quint32 value)
 {
