@@ -5,6 +5,7 @@
 #include "recorder/avirecorderworker.h"
 #include "jpegencoderworker.h"
 #include "jpegframestore.h"
+#include "rtsp/rtspserverworker.h"
 
 #include <QDateTime>
 #include <QDir>
@@ -40,7 +41,8 @@ CameraController::~CameraController()
         m_recorder->wait(10000);
     }
     releaseRecorder();    // 先停止录像
-    releaseJpegEncoder(); // 再停止编码
+    releaseRtsp();        // 再停 RTSP：它引用 m_jpegFrameStore，必须在 Store 消亡前退场
+    releaseJpegEncoder(); // 然后停止编码（生产者）
     delete m_jpegFrameStore;
     if (m_capture != nullptr)
     {
@@ -64,6 +66,8 @@ QString CameraController::statusMessage() const { return m_statusMessage; }
 QString CameraController::errorMessage() const { return m_errorMessage; }
 QString CameraController::lastSavedPath() const { return m_lastSavedPath; }
 quint64 CameraController::previewRevision() const { return m_previewRevision; }
+bool CameraController::rtspEnabled() const { return m_rtspEnabled; }
+QString CameraController::rtspStatus() const { return m_rtspStatus; }
 
 void CameraController::openCamera()
 {
@@ -99,6 +103,11 @@ void CameraController::closeCamera()
     if (m_recording || m_stopping)
     {
         setErrorMessage(QStringLiteral("请先停止录像，再关闭摄像头"));
+        return;
+    }
+    if (m_rtspEnabled)
+    {
+        setErrorMessage(QStringLiteral("请先关闭 RTSP，再关闭摄像头"));
         return;
     }
     if (m_capture == nullptr || !m_capture->isRunning())
@@ -464,4 +473,76 @@ void CameraController::releaseJpegEncoder()
 void CameraController::onEncoderError(const QString &message)
 {
     setErrorMessage(message);
+}
+
+/* ======================= RTSP 推流控制 ======================= */
+
+void CameraController::startRtsp()
+{
+    if (!m_cameraOpen || m_cameraBusy)
+    {
+        setErrorMessage(QStringLiteral("请先开启摄像头并等待预览画面"));
+        return;
+    }
+    if (m_recording || m_stopping)
+    {
+        setErrorMessage(QStringLiteral("录像收尾中，请稍候再开启 RTSP"));
+        return;
+    }
+    if (m_rtspServer != nullptr || m_rtspEnabled)
+        return;
+
+    setErrorMessage(QString());
+    setState(m_state, QStringLiteral("正在开启 RTSP…"));
+
+    m_rtspServer = new RtspServerWorker(m_jpegFrameStore, this);
+    connect(m_rtspServer, &RtspServerWorker::serverStarted,
+            this, [this]()
+    {
+        m_rtspEnabled = true;
+        emit rtspEnabledChanged();
+        m_rtspStatus =
+                QStringLiteral("RTSP 已开启：rtsp://<开发板IP>:8554/camera");
+        emit rtspStatusChanged();
+        setState(m_state, QStringLiteral("RTSP 推流已开启"));
+    },
+            Qt::QueuedConnection);
+    connect(m_rtspServer, &RtspServerWorker::serverError,
+            this, &CameraController::onRtspServerError,
+            Qt::QueuedConnection); // 跨线程信号一律 Queued，槽落回 GUI 线程
+    m_rtspServer->start();
+}
+
+void CameraController::stopRtsp()
+{
+    releaseRtsp();
+    m_rtspStatus = QStringLiteral("RTSP 未开启");
+    emit rtspStatusChanged();
+    setState(m_state, QStringLiteral("RTSP 已关闭"));
+}
+
+void CameraController::onRtspServerError(const QString &message)
+{
+    setErrorMessage(message);
+    releaseRtsp(); // 清理启动失败的线程对象，允许再次点击重试
+}
+
+void CameraController::releaseRtsp()
+{
+    if (m_rtspServer == nullptr)
+        return;
+
+    if (m_rtspServer->isRunning())
+    {
+        m_rtspServer->requestStop();
+        m_rtspServer->wait(5000);
+    }
+    delete m_rtspServer; // 析构函数里还有一道 requestStop+wait 双保险
+    m_rtspServer = nullptr;
+
+    if (m_rtspEnabled)
+    {
+        m_rtspEnabled = false;
+        emit rtspEnabledChanged();
+    }
 }

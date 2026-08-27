@@ -243,6 +243,35 @@ ApplicationWindow {
                     }
                 }
 
+                Button {
+                    Layout.fillWidth: true
+
+                    text: cameraController.rtspEnabled
+                          ? qsTr("关闭 RTSP 推流") : qsTr("开启 RTSP 推流")
+
+                    enabled: cameraController.cameraOpen
+                             && !cameraController.cameraBusy
+                             && !cameraController.recording
+                             && !cameraController.stopping
+
+                    onClicked: {
+                        if (cameraController.rtspEnabled)
+                            cameraController.stopRtsp()
+                        else
+                            cameraController.startRtsp()
+                    }
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    text: cameraController.rtspEnabled
+                          ? cameraController.rtspStatus
+                          : qsTr("RTSP：未开启")
+                    color: cameraController.rtspEnabled ? "#4ade80" : "#93a1b2"
+                    wrapMode: Text.WrapAnywhere
+                    font.pixelSize: 12
+                }
+
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
@@ -263,6 +292,8 @@ ApplicationWindow {
                     Label { text: "MJPEG / 15 FPS"; color: "#e5e7eb" }
                     Label { text: qsTr("质量"); color: "#93a1b2" }
                     Label { text: "JPEG 85"; color: "#e5e7eb" }
+                    Label { text: qsTr("推流"); color: "#93a1b2" }
+                    Label { text: "MJPEG/RTP · :8554 /camera"; color: "#e5e7eb" }
                 }
 
                 RowLayout {

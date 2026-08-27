@@ -128,9 +128,8 @@ void RtspServerWorker::createPipelineAndListen()
     g_source_attach(m_pushSource, m_context);
 
     emit serverStarted();
-
-    // 阻塞直到 requestStop() 把 quit 投递进来
-    g_main_loop_run(m_loop);
+    // 注意:这里不进入主循环 —— g_main_loop_run 必须在 run() 中锁外执行,
+    // 否则 requestStop() 会被 m_loopMutex 阻塞而无法投递 quit(死锁)。
 }
 
 void RtspServerWorker::run()
@@ -139,10 +138,21 @@ void RtspServerWorker::run()
 
     {
         QMutexLocker locker(&m_loopMutex);
-        createPipelineAndListen();
+        createPipelineAndListen(); // 装配资源;失败时内部 emit serverError 后返回
     }
 
-    cleanup();
+    // 主循环必须锁外运行:仅当监听建立成功且未被要求停止时才进入;
+    // 若刚 start 就被要求停止,则跳过循环直接收摊
+    if (m_stopRequested.loadAcquire() == 0 &&
+            m_loop != nullptr && m_serverSource != nullptr)
+    {
+        g_main_loop_run(m_loop); // 阻塞至 requestStop 投递的 quit 生效
+    }
+
+    {
+        QMutexLocker locker(&m_loopMutex);
+        cleanup();
+    }
 }
 
 void RtspServerWorker::cleanup()
