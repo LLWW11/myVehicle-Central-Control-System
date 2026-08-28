@@ -495,18 +495,18 @@ void CameraController::startRtsp()
     setErrorMessage(QString());
     setState(m_state, QStringLiteral("正在开启 RTSP…"));
 
-    m_rtspServer = new RtspServerWorker(m_jpegFrameStore, this);
-    connect(m_rtspServer, &RtspServerWorker::serverStarted,
-            this, [this]()
-    {
+    // m_rtspServer = new RtspServerWorker(m_jpegFrameStore, this);
+    m_rtspServer = new RtspServerWorker(m_jpegFrameStore, 8554,
+                                        QStringLiteral("/camera"), this);
+
+    connect(m_rtspServer, &RtspServerWorker::serverStarted, this, [this]()
+            {
         m_rtspEnabled = true;
         emit rtspEnabledChanged();
         m_rtspStatus =
                 QStringLiteral("RTSP 已开启：rtsp://<开发板IP>:8554/camera");
         emit rtspStatusChanged();
-        setState(m_state, QStringLiteral("RTSP 推流已开启"));
-    },
-            Qt::QueuedConnection);
+        setState(m_state, QStringLiteral("RTSP 推流已开启")); }, Qt::QueuedConnection);
     connect(m_rtspServer, &RtspServerWorker::serverError,
             this, &CameraController::onRtspServerError,
             Qt::QueuedConnection); // 跨线程信号一律 Queued，槽落回 GUI 线程
