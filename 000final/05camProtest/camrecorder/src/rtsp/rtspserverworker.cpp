@@ -144,7 +144,7 @@ void RtspServerWorker::run()
     // 主循环必须锁外运行:仅当监听建立成功且未被要求停止时才进入;
     // 若刚 start 就被要求停止,则跳过循环直接收摊
     if (m_stopRequested.loadAcquire() == 0 &&
-            m_loop != nullptr && m_serverSource != nullptr)
+        m_loop != nullptr && m_serverSource != nullptr)
     {
         g_main_loop_run(m_loop); // 阻塞至 requestStop 投递的 quit 生效
     }
@@ -258,14 +258,14 @@ gboolean RtspServerWorker::pushLatestFrame()
         return G_SOURCE_REMOVE; // 连同定时源一起退出
 
     if (m_appsrc == nullptr || m_store == nullptr)
-        return G_SOURCE_CONTINUE; // 没有观众,白白路过
+        return G_SOURCE_CONTINUE;
 
     const JpegFrame frame = m_store->latest(); // 内部自旋锁拷贝一份快照
 
     if (!frame.isValid())
         return G_SOURCE_CONTINUE;
     if (frame.generation == m_previousGeneration)
-        return G_SOURCE_CONTINUE; // 还是老画面,不发重复帧
+        return G_SOURCE_CONTINUE;
 
     m_previousGeneration = frame.generation;
 
@@ -285,7 +285,7 @@ gboolean RtspServerWorker::pushLatestFrame()
     ++m_frameIndex;
 
     gst_app_src_push_buffer(GST_APP_SRC(m_appsrc), buffer);
-    // ⚠️ 所有权已交给 appsrc,绝不能再 unref 这块 buffer!
+    // 所有权已交给 appsrc,绝不能再 unref 这块 buffer!
 
     return G_SOURCE_CONTINUE;
 }
