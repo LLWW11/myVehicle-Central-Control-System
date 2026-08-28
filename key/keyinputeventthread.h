@@ -34,7 +34,7 @@ public:
      */
     ~KeyInputEventThread() override;
 
-signals:
+Q_SIGNALS:
     /**
      * @brief 上报板载按键状态变化。
      * @param code Qt 按键码。

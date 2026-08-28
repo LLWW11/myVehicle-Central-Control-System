@@ -114,7 +114,7 @@ public:
      */
     Q_INVOKABLE bool requestExit();
 
-signals:
+Q_SIGNALS:
     void stateChanged();
     void modeChanged();
     void cameraOpenChanged();
@@ -129,7 +129,7 @@ signals:
     void lastSavedPathChanged();
     void previewRevisionChanged();
 
-private slots:
+private Q_SLOTS:
     /** @brief 处理摄像头第一帧到达。 */
     void onCaptureStarted(int width, int height, int bytesPerLine);
     /** @brief 处理摄像头线程错误。 */

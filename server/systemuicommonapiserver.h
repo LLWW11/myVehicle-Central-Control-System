@@ -76,7 +76,7 @@ public:
 
     void updateReceiveAppMessages(SystemUIMessages messages);
 
-public slots:
+public Q_SLOTS:
     /**
      * @brief 请求当前前台应用退出，并在应用退出后返回桌面。
      */
@@ -84,7 +84,7 @@ public slots:
     virtual void onServerVariant(const QByteArray &data) override;
     void quitNotification(QString appName);
     void launchApp(const QString &appName);
-private slots:
+private Q_SLOTS:
     void timeOutDetectIsAlreadyRunning();
     void noAppFile();
     void onAppExitHandler(QProcess *process, int exitValue);
@@ -99,7 +99,7 @@ private:
 
     void updateReceiveAppMessages(const QString &name, const QVariant& value);
 
-signals:
+Q_SIGNALS:
     void requestVisibilityChange(int action);
     void currtentLauchAppNameChanged();
     void appIsRunningChanged();

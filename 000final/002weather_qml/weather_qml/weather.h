@@ -42,7 +42,7 @@ public:
     Q_INVOKABLE void queryCurrentWeather(const QString &adcode);
     Q_INVOKABLE void queryForecast(const QString &adcode);
 
-signals:
+Q_SIGNALS:
     // 信号参数全部改为 QVariantMap / QVariantList,QML 端可直接访问字段
     void locationsReady(const QString &city, const QString &adcode);
     void currentWeatherReady(const QVariantMap &live);

@@ -19,7 +19,7 @@ public:
     ~CameraCapture() override;
     void requestStop(); // 停止该线程
 
-signals:
+Q_SIGNALS:
 
     void captureStarted(int width, int height, int bytesPerLine); // 开始采集的信号
     void captureError(const QString &message);

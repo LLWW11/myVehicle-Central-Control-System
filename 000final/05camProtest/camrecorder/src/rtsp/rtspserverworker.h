@@ -33,7 +33,7 @@ public:
 
     void requestStop(); // 线程安全,可在任意线程调用
 
-signals:
+Q_SIGNALS:
     void serverStarted();                     // 端口已监听成功
     void serverError(const QString &message); // 监听失败,线程即将结束
 

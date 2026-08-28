@@ -51,18 +51,18 @@ void AviRecorderWorker::run()
 {
     // 每段录像使用一个新线程对象，保留启动瞬间可能已经发出的停止请求。
     if (m_stopRequested.loadAcquire() != 0) {
-        emit recordingFinished(false, m_partPath,
+        Q_EMIT recordingFinished(false, m_partPath,
                                QStringLiteral("录像在启动前已被停止"));
         return;
     }
 
     AviWriter writer;
     if (!writer.open(m_partPath, 640, 480, kRecordFps, kJpegQuality)) {
-        emit recordingFinished(false, m_partPath, writer.errorString());
+        Q_EMIT recordingFinished(false, m_partPath, writer.errorString());
         return;
     }
 
-    emit recordingStarted();
+    Q_EMIT recordingStarted();
     quint64 previousGeneration = 0;
     quint64 capturedFrames = 0;
     QString failure;
@@ -85,20 +85,20 @@ void AviRecorderWorker::run()
 
     if (!failure.isEmpty()) {
         writer.abort();
-        emit recordingFinished(false, m_partPath, failure);
+        Q_EMIT recordingFinished(false, m_partPath, failure);
         return;
     }
     if (!writer.finalize()) {
-        emit recordingFinished(false, m_partPath, writer.errorString());
+        Q_EMIT recordingFinished(false, m_partPath, writer.errorString());
         return;
     }
 
     if (QFile::exists(m_finalPath) || !QFile::rename(m_partPath, m_finalPath)) {
-        emit recordingFinished(false, m_partPath,
+        Q_EMIT recordingFinished(false, m_partPath,
                                QStringLiteral("AVI 已收尾，但临时文件改名失败"));
         return;
     }
-    emit recordingFinished(true, m_finalPath,
+    Q_EMIT recordingFinished(true, m_finalPath,
                            QStringLiteral("录像已保存，共 %1 帧")
                            .arg(writer.frameCount()));
 }

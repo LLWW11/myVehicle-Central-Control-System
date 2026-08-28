@@ -83,7 +83,7 @@ void CameraController::openCamera()
 
     setErrorMessage(QString());
     m_cameraBusy = true;
-    emit cameraBusyChanged();
+    Q_EMIT cameraBusyChanged();
     setState(QStringLiteral("Opening"), QStringLiteral("正在打开 /dev/video1…"));
 
     m_capture = new CameraCapture(m_frameStore, this);
@@ -119,7 +119,7 @@ void CameraController::closeCamera()
     }
 
     m_cameraBusy = true;
-    emit cameraBusyChanged();
+    Q_EMIT cameraBusyChanged();
     setState(QStringLiteral("Closing"), QStringLiteral("正在关闭摄像头…"));
     m_capture->requestStop();
 }
@@ -137,7 +137,7 @@ void CameraController::setMode(int requestedMode)
         return;
 
     m_mode = requestedMode;
-    emit modeChanged();
+    Q_EMIT modeChanged();
     setErrorMessage(QString());
     if (m_cameraOpen)
     {
@@ -183,9 +183,9 @@ void CameraController::startRecording()
 
     setErrorMessage(QString());
     m_recordingSeconds = 0;
-    emit recordingSecondsChanged();
+    Q_EMIT recordingSecondsChanged();
     m_stopping = true; // 文件成功建立前视为忙状态，阻止其他操作
-    emit stoppingChanged();
+    Q_EMIT stoppingChanged();
     setState(QStringLiteral("StartingRecord"), QStringLiteral("正在创建录像文件…"));
 
     m_recorder = new AviRecorderWorker(m_jpegFrameStore, partPath, finalPath, this);
@@ -204,7 +204,7 @@ void CameraController::stopRecording()
         return;
 
     m_stopping = true;
-    emit stoppingChanged();
+    Q_EMIT stoppingChanged();
     setState(QStringLiteral("Stopping"), QStringLiteral("正在完成 AVI 收尾，请稍候…"));
     m_recorder->requestStop();
 }
@@ -220,12 +220,12 @@ void CameraController::refreshUsbStatus()
     if (m_usbReady != ready)
     {
         m_usbReady = ready;
-        emit usbReadyChanged();
+        Q_EMIT usbReadyChanged();
     }
     if (m_usbStatus != status)
     {
         m_usbStatus = status;
-        emit usbStatusChanged();
+        Q_EMIT usbStatusChanged();
     }
 }
 
@@ -259,11 +259,11 @@ void CameraController::onCaptureStarted(int width, int height, int bytesPerLine)
     }
 
     m_cameraBusy = false;
-    emit cameraBusyChanged();
+    Q_EMIT cameraBusyChanged();
     if (!m_cameraOpen)
     {
         m_cameraOpen = true;
-        emit cameraOpenChanged();
+        Q_EMIT cameraOpenChanged();
     }
     m_previewTimer.start();
     setState(m_mode == Mode1 ? QStringLiteral("Mode1Preview")
@@ -287,7 +287,7 @@ void CameraController::onCaptureError(const QString &message)
     {
         // 文件创建阶段也必须唤醒录像线程，避免摄像头掉线后一直等待首帧
         m_stopping = true;
-        emit stoppingChanged();
+        Q_EMIT stoppingChanged();
         setState(QStringLiteral("Stopping"),
                  QStringLiteral("摄像头异常，正在停止录像线程…"));
         m_recorder->requestStop();
@@ -302,19 +302,19 @@ void CameraController::onCaptureStopped()
     m_cameraOpen = false;
     m_cameraBusy = false;
     if (wasOpen)
-        emit cameraOpenChanged();
-    emit cameraBusyChanged();
+        Q_EMIT cameraOpenChanged();
+    Q_EMIT cameraBusyChanged();
     ++m_previewRevision;
-    emit previewRevisionChanged();
+    Q_EMIT previewRevisionChanged();
     setState(QStringLiteral("CameraClosed"), QStringLiteral("摄像头未开启"));
 }
 
 void CameraController::onRecordingStarted()
 {
     m_stopping = false;
-    emit stoppingChanged();
+    Q_EMIT stoppingChanged();
     m_recording = true;
-    emit recordingChanged();
+    Q_EMIT recordingChanged();
     m_recordingTimer.start();
     setState(QStringLiteral("Recording"), QStringLiteral("正在录像到 /mnt/usb"));
 }
@@ -326,18 +326,18 @@ void CameraController::onRecordingFinished(bool success, const QString &path,
     if (m_recording)
     {
         m_recording = false;
-        emit recordingChanged();
+        Q_EMIT recordingChanged();
     }
     if (m_stopping)
     {
         m_stopping = false;
-        emit stoppingChanged();
+        Q_EMIT stoppingChanged();
     }
 
     if (success)
     {
         m_lastSavedPath = path;
-        emit lastSavedPathChanged();
+        Q_EMIT lastSavedPathChanged();
         setErrorMessage(QString());
         setState(m_cameraOpen ? QStringLiteral("Mode2Idle")
                               : QStringLiteral("CameraClosed"),
@@ -360,7 +360,7 @@ void CameraController::onRecordingFinished(bool success, const QString &path,
 void CameraController::onRecordingTimer()
 {
     ++m_recordingSeconds;
-    emit recordingSecondsChanged();
+    Q_EMIT recordingSecondsChanged();
 }
 
 void CameraController::onPreviewTimer()
@@ -371,7 +371,7 @@ void CameraController::onPreviewTimer()
     if (generation == 0 || generation == m_previewRevision)
         return;
     m_previewRevision = generation;
-    emit previewRevisionChanged();
+    Q_EMIT previewRevisionChanged();
 }
 
 void CameraController::setState(const QString &state, const QString &message)
@@ -379,12 +379,12 @@ void CameraController::setState(const QString &state, const QString &message)
     if (m_state != state)
     {
         m_state = state;
-        emit stateChanged();
+        Q_EMIT stateChanged();
     }
     if (m_statusMessage != message)
     {
         m_statusMessage = message;
-        emit statusMessageChanged();
+        Q_EMIT statusMessageChanged();
     }
 }
 
@@ -393,7 +393,7 @@ void CameraController::setErrorMessage(const QString &message)
     if (m_errorMessage == message)
         return;
     m_errorMessage = message;
-    emit errorMessageChanged();
+    Q_EMIT errorMessageChanged();
 }
 
 bool CameraController::isMountedPath(const QString &path) const
@@ -502,10 +502,10 @@ void CameraController::startRtsp()
     connect(m_rtspServer, &RtspServerWorker::serverStarted, this, [this]()
             {
         m_rtspEnabled = true;
-        emit rtspEnabledChanged();
+        Q_EMIT rtspEnabledChanged();
         m_rtspStatus =
                 QStringLiteral("RTSP 已开启：rtsp://<开发板IP>:8554/camera");
-        emit rtspStatusChanged();
+        Q_EMIT rtspStatusChanged();
         setState(m_state, QStringLiteral("RTSP 推流已开启")); }, Qt::QueuedConnection);
     connect(m_rtspServer, &RtspServerWorker::serverError,
             this, &CameraController::onRtspServerError,
@@ -517,7 +517,7 @@ void CameraController::stopRtsp()
 {
     releaseRtsp();
     m_rtspStatus = QStringLiteral("RTSP 未开启");
-    emit rtspStatusChanged();
+    Q_EMIT rtspStatusChanged();
     setState(m_state, QStringLiteral("RTSP 已关闭"));
 }
 
@@ -543,6 +543,6 @@ void CameraController::releaseRtsp()
     if (m_rtspEnabled)
     {
         m_rtspEnabled = false;
-        emit rtspEnabledChanged();
+        Q_EMIT rtspEnabledChanged();
     }
 }

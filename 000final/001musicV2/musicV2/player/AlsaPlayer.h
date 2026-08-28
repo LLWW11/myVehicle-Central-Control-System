@@ -6,7 +6,7 @@
  *
  * 线程分布:
  *   - GUI 线程: 本对象, 命令转发 + QTimer 轮询进度
- *   - 引擎播放线程(C pthread): 解码/写出, 通过 C 回调 emit Qt 信号
+ *   - 引擎播放线程(C pthread): 解码/写出, 通过 C 回调 Q_EMIT Qt 信号
  *     (信号自动排队到 GUI 线程, 无需手动加锁)
  *   - 下载线程: Downloader 内部 QNetworkAccessManager 异步下载
  *
@@ -40,13 +40,13 @@ public:
     qint64 position() const;
     qint64 duration() const;
 
-signals:
+Q_SIGNALS:
     void stateChanged(PlayerState state);
     void positionChanged(qint64 ms);
     void durationChanged(qint64 ms);
     void errorOccurred(const QString& msg);
 
-private slots:
+private Q_SLOTS:
     void onPollTimer();
     void onDownloadFinished(const QString& path);
     void onDownloadFailed(const QString& msg);

@@ -92,7 +92,7 @@ public:
     Q_INVOKABLE void seek(qint64 ms);
     Q_INVOKABLE void playIndex(int index);
 
-signals:
+Q_SIGNALS:
     void playbackStateChanged(int state);
     void positionChanged(qint64 ms);
     void durationChanged(qint64 ms);
@@ -107,7 +107,7 @@ signals:
     void lyricReady(const QString& lrcText);
     void errorMessage(const QString& msg);
 
-private slots:
+private Q_SLOTS:
     void onUrlReady(const QString& url);
     void onUrlError(const QString& msg);
     void onLyricReadyResult(const QString& lrc);

@@ -41,19 +41,19 @@ void Downloader::download(const QUrl& url, const QString& destPath)
                 !m_timedOut) {
                 return;   // 被新请求替换而取消, 不算错误
             }
-            emit failed(m_timedOut ? QStringLiteral("下载超时")
+            Q_EMIT failed(m_timedOut ? QStringLiteral("下载超时")
                                    : reply->errorString());
             return;
         }
 
         QFile f(m_dest);
         if (!f.open(QIODevice::WriteOnly)) {
-            emit failed(QStringLiteral("无法写入临时文件: ") + m_dest);
+            Q_EMIT failed(QStringLiteral("无法写入临时文件: ") + m_dest);
             return;
         }
         f.write(reply->readAll());
         f.close();
-        emit finished(m_dest);
+        Q_EMIT finished(m_dest);
     });
 }
 

@@ -62,7 +62,7 @@ void MusicEngine::setVolume(qreal v)
         return;
     m_vol100 = val;
     m_player->setVolume(val);
-    emit volumeChanged(volume());
+    Q_EMIT volumeChanged(volume());
 }
 
 bool MusicEngine::hasAudio() const
@@ -80,7 +80,7 @@ void MusicEngine::setAutoPlay(bool b)
     if (m_autoPlay == b)
         return;
     m_autoPlay = b;
-    emit autoPlayChanged(b);
+    Q_EMIT autoPlayChanged(b);
 }
 
 int MusicEngine::status() const
@@ -133,7 +133,7 @@ void MusicEngine::setSource(const QString& src)
         return;
 
     m_source = src;
-    emit sourceChanged(src);
+    Q_EMIT sourceChanged(src);
 
     const int idx = songIndexForId(src);
     if (idx < 0)
@@ -155,7 +155,7 @@ void MusicEngine::setSource(const QString& src)
         loadCurrentSong();
     }
 
-    emit songChanged();
+    Q_EMIT songChanged();
     requestLyricAndCover();
 }
 
@@ -175,7 +175,7 @@ void MusicEngine::requestLyricAndCover()
 {
     const QString lrc = MusicCache::loadLrc(m_current.songmid);
     if (!lrc.isEmpty()) {
-        emit lyricReady(lrc);
+        Q_EMIT lyricReady(lrc);
     } else {
         m_api->requestLyric(m_current.source, m_current.songmid);
     }
@@ -202,7 +202,7 @@ void MusicEngine::requestLyricAndCover()
     if (cacheValid) {
         if (m_coverPath != cached) {
             m_coverPath = cached;
-            emit coverPathChanged();
+            Q_EMIT coverPathChanged();
         }
         return;
     }
@@ -212,7 +212,7 @@ void MusicEngine::requestLyricAndCover()
         QFile::remove(localFile);
     if (!m_coverPath.isEmpty()) {
         m_coverPath.clear();
-        emit coverPathChanged();
+        Q_EMIT coverPathChanged();
     }
     m_api->downloadCover(m_current.img, m_current.songmid);
 }
@@ -227,15 +227,15 @@ void MusicEngine::onUrlError(const QString& msg)
 {
     m_switching = false;
     m_error = NetworkError;
-    emit errorChanged(m_error);
+    Q_EMIT errorChanged(m_error);
     setStatus(InvalidMedia);
-    emit errorMessage(QStringLiteral("获取播放地址失败: ") + msg);
+    Q_EMIT errorMessage(QStringLiteral("获取播放地址失败: ") + msg);
 }
 
 void MusicEngine::onLyricReadyResult(const QString& lrc)
 {
     MusicCache::saveLrc(m_current.songmid, lrc);
-    emit lyricReady(lrc);
+    Q_EMIT lyricReady(lrc);
 }
 
 void MusicEngine::onCoverReady(const QString& songId, const QByteArray& data)
@@ -271,7 +271,7 @@ void MusicEngine::onCoverReady(const QString& songId, const QByteArray& data)
     const QString file = MusicCache::coverUrl(songId);
     if (!file.isEmpty() && m_coverPath != file) {
         m_coverPath = file;
-        emit coverPathChanged();
+        Q_EMIT coverPathChanged();
     }
 }
 
@@ -284,7 +284,7 @@ void MusicEngine::onPlayerStateChanged(PlayerState state)
         setPlaybackState(PlayingState);
         if (m_status != LoadedMedia)
             setStatus(LoadedMedia);
-        emit hasAudioChanged(true);
+        Q_EMIT hasAudioChanged(true);
         break;
     case PlayerState::Paused:
         setPlaybackState(PausedState);
@@ -293,7 +293,7 @@ void MusicEngine::onPlayerStateChanged(PlayerState state)
         if (!m_switching) {
             setPlaybackState(StoppedState);
             setStatus(EndOfMedia);
-            emit hasAudioChanged(false);
+            Q_EMIT hasAudioChanged(false);
         }
         break;
     }
@@ -301,21 +301,21 @@ void MusicEngine::onPlayerStateChanged(PlayerState state)
 
 void MusicEngine::onPlayerPosition(qint64 ms)
 {
-    emit positionChanged(ms);
+    Q_EMIT positionChanged(ms);
 }
 
 void MusicEngine::onPlayerDuration(qint64 ms)
 {
-    emit durationChanged(ms);
+    Q_EMIT durationChanged(ms);
 }
 
 void MusicEngine::onPlayerError(const QString& msg)
 {
     m_switching = false;
     m_error = ResourceError;
-    emit errorChanged(m_error);
+    Q_EMIT errorChanged(m_error);
     setStatus(InvalidMedia);
-    emit errorMessage(msg);
+    Q_EMIT errorMessage(msg);
 }
 
 void MusicEngine::play()
@@ -369,7 +369,7 @@ void MusicEngine::playIndex(int index)
         return;
     m_current = m_songs.at(index);
     m_source = m_current.songmid;
-    emit sourceChanged(m_source);
+    Q_EMIT sourceChanged(m_source);
     setSource(m_source);
     play();
 }
@@ -379,7 +379,7 @@ void MusicEngine::setPlaybackState(int st)
     if (m_playbackState == st)
         return;
     m_playbackState = st;
-    emit playbackStateChanged(st);
+    Q_EMIT playbackStateChanged(st);
 }
 
 void MusicEngine::setStatus(int st)
@@ -387,5 +387,5 @@ void MusicEngine::setStatus(int st)
     if (m_status == st)
         return;
     m_status = st;
-    emit statusChanged(st);
+    Q_EMIT statusChanged(st);
 }

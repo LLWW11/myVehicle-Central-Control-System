@@ -79,7 +79,7 @@ void MusicLyricModel::setcurrentIndex(int i)
     if (m_currentIndex == i)
         return;
     m_currentIndex = i;
-    emit currentIndexChanged();
+    Q_EMIT currentIndexChanged();
 }
 
 QHash<int, QByteArray> MusicLyricModel::roleNames() const

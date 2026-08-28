@@ -94,7 +94,7 @@ void KeyInputEventThread::run()
 
         // 原 KEY0 测试程序将板载按键映射为 Linux KEY_VOLUMEDOWN。
         if (event.type == EV_KEY && event.code == KEY_VOLUMEDOWN)
-            emit keyEvent(Qt::Key_VolumeDown, event.value != 0);
+            Q_EMIT keyEvent(Qt::Key_VolumeDown, event.value != 0);
     }
 
     close(keyFileDescriptor);

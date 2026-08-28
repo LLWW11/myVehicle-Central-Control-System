@@ -29,7 +29,7 @@ void LaunchIntent::lauchApp(const QString &appName)
         if (!tmpPro.exitCode()) {
             // If it is already running, then we are no longer running, perhaps the App is stuck and unresponsive
             qDebug() << "似乎已经运行" + appName << cmd;
-            emit noAppFile();
+            Q_EMIT noAppFile();
             return;
         }
         QProcess *pro =  new QProcess();
@@ -40,12 +40,12 @@ void LaunchIntent::lauchApp(const QString &appName)
         //connect(pro, SIGNAL(finished(int)), this, SIGNAL(noAppFile()));
         qDebug() << cmd;
     } else {
-        emit noAppFile();
+        Q_EMIT noAppFile();
         qDebug() << "无法找到" << cmd;
     }
 }
 
 void LaunchIntent::onAppExitHandler(int exitValue)
 {
-    emit appExitHandler((QProcess*)sender(), exitValue);
+    Q_EMIT appExitHandler((QProcess*)sender(), exitValue);
 }

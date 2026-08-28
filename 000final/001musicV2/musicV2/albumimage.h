@@ -28,7 +28,7 @@ public:
     void setAlbum(qreal &radius);
 protected:
     void paint(QPainter *painter) override;
-signals:
+Q_SIGNALS:
     void sourceChanged();
     void radiusChanged();
 

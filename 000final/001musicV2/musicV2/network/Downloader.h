@@ -19,7 +19,7 @@ public:
     void download(const QUrl& url, const QString& destPath);
     void abort();
 
-signals:
+Q_SIGNALS:
     void finished(const QString& path);
     void failed(const QString& msg);
 

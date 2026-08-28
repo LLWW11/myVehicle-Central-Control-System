@@ -57,11 +57,11 @@ public:
         installedRole,
     };
 
-signals:
+Q_SIGNALS:
     void currentIndexChanged();
     void countChanged();
 
-public slots:
+public Q_SLOTS:
 
 private:
     QHash<int, QByteArray> roleNames() const;

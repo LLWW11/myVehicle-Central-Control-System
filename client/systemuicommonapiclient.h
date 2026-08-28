@@ -104,7 +104,7 @@ public:
 
     bool backgroundTask() const;
     void setBackgroundTask(bool newBackgroundTask);
-signals:
+Q_SIGNALS:
     void appNameChanged();
     void actionCommand(Command cmd);
     void appAppPropertyChanged();
@@ -140,11 +140,11 @@ private:
 
     bool m_backgroundTask;
 
-public slots:
+public Q_SLOTS:
     void askSystemUItohideOrShow(Command cmd);
     void sendAppStateImage(QVariant Variant);
     void onSystemuiconfChanged();
-private slots:
+private Q_SLOTS:
     void onServerVariant(const QByteArray &ba);
     void timerTimeOut();
 };

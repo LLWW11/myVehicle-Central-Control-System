@@ -24,7 +24,7 @@ public:
 
     void requestStop();
 
-signals:
+Q_SIGNALS:
     void encoderError(const QString &message);
 
 protected:

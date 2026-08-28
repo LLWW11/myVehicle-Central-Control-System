@@ -18,13 +18,13 @@ class LaunchIntent : public QObject
 public:
     explicit LaunchIntent(QObject *parent = nullptr);
 
-signals:
+Q_SIGNALS:
     void noAppFile();
     void appExitHandler(QProcess *pro, int exitValue);
 
-public slots:
+public Q_SLOTS:
     void lauchApp(const QString &appName);
-private slots:
+private Q_SLOTS:
     void onAppExitHandler(int exitValue);
 
 };

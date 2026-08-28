@@ -52,7 +52,7 @@ void Weather::queryLocation()
                 return;
             }
 
-            emit errorOccurred(QStringLiteral("无法解析高德的IPv4地址"));
+            Q_EMIT errorOccurred(QStringLiteral("无法解析高德的IPv4地址"));
         });
 }
 
@@ -97,18 +97,18 @@ void Weather::parseCurrent(QNetworkReply *reply)
 
     QJsonDocument doc = QJsonDocument::fromJson(data);
     if (doc.isNull() || !doc.isObject()) {
-        emit errorOccurred(QStringLiteral("当前天气解析失败"));
+        Q_EMIT errorOccurred(QStringLiteral("当前天气解析失败"));
         return;
     }
     QJsonObject obj = doc.object();
     if (obj.value("status").toString() != QStringLiteral("1")) {
-        emit errorOccurred(obj.value("info").toString());
+        Q_EMIT errorOccurred(obj.value("info").toString());
         return;
     }
 
     QJsonArray lives = obj.value("lives").toArray();
     if (lives.isEmpty()) {
-        emit errorOccurred(QStringLiteral("当前天气数据为空"));
+        Q_EMIT errorOccurred(QStringLiteral("当前天气数据为空"));
         return;
     }
 
@@ -123,8 +123,8 @@ void Weather::parseCurrent(QNetworkReply *reply)
     live.windPower     = liveObj.value("windpower").toString();
     live.humidity      = liveObj.value("humidity").toString();
     live.reportTime    = liveObj.value("reporttime").toString();
-    // 改造点:struct → QVariantMap 后再 emit,QML 端可直接访问字段
-    emit currentWeatherReady(liveToMap(live));
+    // 改造点:struct → QVariantMap 后再 Q_EMIT,QML 端可直接访问字段
+    Q_EMIT currentWeatherReady(liveToMap(live));
 
     reply->deleteLater();
 }
@@ -136,15 +136,15 @@ void Weather::parseLocation(QNetworkReply *reply)
 
     QJsonDocument doc = QJsonDocument::fromJson(data);
     if (doc.isNull() || !doc.isObject()) {
-        emit errorOccurred(QStringLiteral("定位响应解析失败"));
+        Q_EMIT errorOccurred(QStringLiteral("定位响应解析失败"));
         return;
     }
     QJsonObject obj = doc.object();
     if (obj.value(QStringLiteral("status")).toString() != QStringLiteral("1")) {
-        emit errorOccurred(obj.value(QStringLiteral("info")).toString());  // 高德错误信息
+        Q_EMIT errorOccurred(obj.value(QStringLiteral("info")).toString());  // 高德错误信息
         return;
     }
-    emit locationsReady(obj.value("city").toString(),
+    Q_EMIT locationsReady(obj.value("city").toString(),
                         obj.value("adcode").toString());
 }
 
@@ -155,18 +155,18 @@ void Weather::parseForecast(QNetworkReply *reply)
 
     QJsonDocument doc = QJsonDocument::fromJson(data);
     if (doc.isNull() || !doc.isObject()) {
-        emit errorOccurred(QStringLiteral("天气预报解析失败"));
+        Q_EMIT errorOccurred(QStringLiteral("天气预报解析失败"));
         return;
     }
     QJsonObject obj = doc.object();
     if (obj.value("status").toString() != QStringLiteral("1")) {
-        emit errorOccurred(obj.value("info").toString());
+        Q_EMIT errorOccurred(obj.value("info").toString());
         return;
     }
 
     QJsonArray forecasts = obj.value("forecasts").toArray();
     if (forecasts.isEmpty()) {
-        emit errorOccurred(QStringLiteral("天气预报数据为空"));
+        Q_EMIT errorOccurred(QStringLiteral("天气预报数据为空"));
         return;
     }
 
@@ -192,7 +192,7 @@ void Weather::parseForecast(QNetworkReply *reply)
         forecast.days.append(day);
     }
 
-    // 改造点:struct → QVariantMap 后再 emit,QML 端 forecast.days 是数组
+    // 改造点:struct → QVariantMap 后再 Q_EMIT,QML 端 forecast.days 是数组
     QVariantMap map;
     map.insert("city", forecast.city);
     map.insert("adcode", forecast.adcode);
@@ -201,7 +201,7 @@ void Weather::parseForecast(QNetworkReply *reply)
     for (const ForecastDay &d : forecast.days)
         dayList.append(dayToMap(d));
     map.insert("days", dayList);
-    emit forecastReady(map);
+    Q_EMIT forecastReady(map);
 }
 
 // struct → QVariantMap 辅助函数

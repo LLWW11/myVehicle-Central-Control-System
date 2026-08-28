@@ -24,11 +24,11 @@ public:
     double accuracy() const;
     QString statusText() const; // 串口状态
 
-signals:
+Q_SIGNALS:
     void locationChanged();
     void statusChanged();
 
-private slots:
+private Q_SLOTS:
     void readAvailableData();
     void handleSerialError(QSerialPort::SerialPortError error);
     void handleLocationTimeout();

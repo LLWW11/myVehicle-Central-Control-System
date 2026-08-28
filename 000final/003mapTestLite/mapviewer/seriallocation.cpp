@@ -25,7 +25,7 @@ bool SerialLocation::openPort(const QString &deviceName, qint32 baudRate)
     if (!m_serialPort.open(QIODevice::ReadWrite))
     {
         m_statusText = QStringLiteral("串口打开失败：") + m_serialPort.errorString();
-        emit statusChanged();
+        Q_EMIT statusChanged();
         return false;
     }
 
@@ -36,15 +36,15 @@ bool SerialLocation::openPort(const QString &deviceName, qint32 baudRate)
     {
         m_statusText = QStringLiteral("串口参数配置失败：") + m_serialPort.errorString();
         m_serialPort.close();
-        emit statusChanged();
+        Q_EMIT statusChanged();
         return false;
     }
     m_valid = false;
     m_statusText = QStringLiteral("串口已连接，等待定位数据");
     m_locationTimeoutTimer.start(); // 开始等待数据
 
-    emit locationChanged();
-    emit statusChanged();
+    Q_EMIT locationChanged();
+    Q_EMIT statusChanged();
 
     return true;
 }
@@ -97,8 +97,8 @@ void SerialLocation::readAvailableData()
         m_valid = true;
         m_statusText = QStringLiteral("定位数据正常");
         m_locationTimeoutTimer.start(); // 数据正常则开启定时
-        emit locationChanged();
-        emit statusChanged();
+        Q_EMIT locationChanged();
+        Q_EMIT statusChanged();
     }
 
     // 防止一直收不到换行符时缓存无限增长。
@@ -106,7 +106,7 @@ void SerialLocation::readAvailableData()
     {
         m_receiveBuffer.clear();
         m_statusText = QStringLiteral("串口数据格式异常");
-        emit statusChanged();
+        Q_EMIT statusChanged();
     }
 }
 void SerialLocation::handleSerialError(
@@ -117,15 +117,15 @@ void SerialLocation::handleSerialError(
     m_locationTimeoutTimer.stop();
     m_statusText = QStringLiteral("串口错误：") + m_serialPort.errorString();
 
-    emit statusChanged();
+    Q_EMIT statusChanged();
 }
 void SerialLocation::handleLocationTimeout()
 {
     m_valid = false;
     m_statusText = QStringLiteral("异常:5秒未收到有效数据");
 
-    emit locationChanged();
-    emit statusChanged();
+    Q_EMIT locationChanged();
+    Q_EMIT statusChanged();
 }
 
 // 解析

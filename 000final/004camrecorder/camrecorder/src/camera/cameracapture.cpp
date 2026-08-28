@@ -74,14 +74,14 @@ void CameraCapture::run()
 
     // 对象每次开启都会重新创建，不在此重置标志，避免吞掉启动瞬间的停止请求。
     if (m_stopRequested.loadAcquire() != 0) {
-        emit captureStopped();
+        Q_EMIT captureStopped();
         return;
     }
 
     if (!openDevice() || !configureDevice() || !mapBuffers()
             || !startStreaming()) {
         cleanup();
-        emit captureStopped();
+        Q_EMIT captureStopped();
         return;
     }
 
@@ -108,7 +108,7 @@ void CameraCapture::run()
     }
 
     cleanup();
-    emit captureStopped();
+    Q_EMIT captureStopped();
 }
 
 /**
@@ -133,7 +133,7 @@ bool CameraCapture::openDevice()
             ? capability.device_caps : capability.capabilities;
     if ((capabilities & V4L2_CAP_VIDEO_CAPTURE) == 0
             || (capabilities & V4L2_CAP_STREAMING) == 0) {
-        emit captureError(QStringLiteral("/dev/video1 不支持视频采集或 MMAP 流模式"));
+        Q_EMIT captureError(QStringLiteral("/dev/video1 不支持视频采集或 MMAP 流模式"));
         return false;
     }
     return true;
@@ -159,7 +159,7 @@ bool CameraCapture::configureDevice()
     if (format.fmt.pix.width != kFrameWidth
             || format.fmt.pix.height != kFrameHeight
             || format.fmt.pix.pixelformat != V4L2_PIX_FMT_RGB565) {
-        emit captureError(QStringLiteral("摄像头未接受 640×480 RGB565 固定格式"));
+        Q_EMIT captureError(QStringLiteral("摄像头未接受 640×480 RGB565 固定格式"));
         return false;
     }
 
@@ -198,7 +198,7 @@ bool CameraCapture::mapBuffers()
         return false;
     }
     if (request.count < 2) {
-        emit captureError(QStringLiteral("摄像头返回的 MMAP 缓冲区数量不足"));
+        Q_EMIT captureError(QStringLiteral("摄像头返回的 MMAP 缓冲区数量不足"));
         return false;
     }
 
@@ -282,10 +282,10 @@ bool CameraCapture::captureOneFrame(bool *firstFrame)
             m_frameStore->publish(bytes, m_width, m_height, m_bytesPerLine);
             if (*firstFrame) {
                 *firstFrame = false;
-                emit captureStarted(m_width, m_height, m_bytesPerLine);
+                Q_EMIT captureStarted(m_width, m_height, m_bytesPerLine);
             }
         } else {
-            emit captureError(QStringLiteral("摄像头帧数据小于 640×480 RGB565 所需大小"));
+            Q_EMIT captureError(QStringLiteral("摄像头帧数据小于 640×480 RGB565 所需大小"));
             validBuffer = false;
         }
     }
@@ -327,6 +327,6 @@ void CameraCapture::cleanup()
  */
 void CameraCapture::reportSystemError(const QString &operation)
 {
-    emit captureError(QStringLiteral("%1失败：%2")
+    Q_EMIT captureError(QStringLiteral("%1失败：%2")
                       .arg(operation, QString::fromLocal8Bit(std::strerror(errno))));
 }

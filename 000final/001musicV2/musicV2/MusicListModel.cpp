@@ -19,10 +19,10 @@ void MusicListModel::setCurrentIndex(int i)
     if (i == m_currentIndex)
         return;
     m_currentIndex = i;
-    emit currentIndexChanged();
+    Q_EMIT currentIndexChanged();
     if (i >= 0 && i < m_songs.size() && m_songName != m_songs.at(i).name) {
         m_songName = m_songs.at(i).name;
-        emit songNameChanged();
+        Q_EMIT songNameChanged();
     }
 }
 

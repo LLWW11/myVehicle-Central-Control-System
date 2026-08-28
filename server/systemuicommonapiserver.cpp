@@ -61,7 +61,7 @@ void SystemUICommonApiServer::returnToDesktop()
 {
     // 桌面已经显示时无需结束可能仍在后台运行的应用。
     if (m_currtentLauchAppName.isEmpty() || m_currtentLauchAppName == "null") {
-        emit requestVisibilityChange(Command::Show);
+        Q_EMIT requestVisibilityChange(Command::Show);
         return;
     }
 
@@ -85,7 +85,7 @@ void SystemUICommonApiServer::setCurrtentLauchAppName(const QString &appName)
 {
     if (appName != m_currtentLauchAppName) {
         m_currtentLauchAppName = appName;
-        emit currtentLauchAppNameChanged();
+        Q_EMIT currtentLauchAppNameChanged();
         detectAppIsAlreadyRunningTimer->stop();
         if (m_currtentLauchAppName != "") {
             detectAppIsAlreadyRunningTimer->start();
@@ -108,7 +108,7 @@ void SystemUICommonApiServer::noAppFile()
 {
     setColdLaunch(true);
     setCurrtentLauchAppName("null");
-    emit appIsUnistalled();
+    Q_EMIT appIsUnistalled();
 }
 
 void SystemUICommonApiServer::onAppExitHandler(QProcess *process, int exitValue)
@@ -116,10 +116,10 @@ void SystemUICommonApiServer::onAppExitHandler(QProcess *process, int exitValue)
     if (m_currtentLauchAppName == process->objectName()) {
         setCurrtentLauchAppName("null");
         setColdLaunch(true);
-        emit requestVisibilityChange(Command::Show);
+        Q_EMIT requestVisibilityChange(Command::Show);
     }
     if (exitValue != 0) {
-        emit appCrashHandler(process->objectName());
+        Q_EMIT appCrashHandler(process->objectName());
     }
 }
 
@@ -173,7 +173,7 @@ void SystemUICommonApiServer::setColdLaunch(bool newColdLaunch)
     if (m_coldLaunch == newColdLaunch)
         return;
     m_coldLaunch = newColdLaunch;
-    emit coldLaunchChanged();
+    Q_EMIT coldLaunchChanged();
 }
 
 void SystemUICommonApiServer::updateReceiveAppMessages(SystemUIMessages messages)
@@ -200,17 +200,17 @@ void SystemUICommonApiServer::updateReceiveAppMessages(SystemUIMessages messages
             detectAppIsAlreadyRunningTimer->stop();
             setAppIsRunning(true);
             setCurrtentAppIsActive(true);
-            emit requestVisibilityChange(Command::Hide);
+            Q_EMIT requestVisibilityChange(Command::Hide);
             m_propertiesCache[pros.appName] = m_currtentLauchAppName;
             serverSendVariant(serializeSystemUIMessages(m_propertiesCache));
             //m_currtentLauchAppName = "";
         }
     }/* else if (m_receiveAppMessagesCache.value(pros.appState) == AppState::Active) {
-        emit requestVisibilityChange(Command::Hide);
+        Q_EMIT requestVisibilityChange(Command::Hide);
     }*/
 
     if (m_receiveAppMessagesCache.value(pros.command) == Command::Show) {
-        emit requestVisibilityChange(Command::Show);
+        Q_EMIT requestVisibilityChange(Command::Show);
         detectAppIsAlreadyRunningTimer->stop();
         setColdLaunch(true);
     }
@@ -234,7 +234,7 @@ void SystemUICommonApiServer::setCurrtentAppIsActive(bool newCurrtentAppIsActive
     if (m_currtentAppIsActive == newCurrtentAppIsActive)
         return;
     m_currtentAppIsActive = newCurrtentAppIsActive;
-    emit currtentAppIsActiveChanged();
+    Q_EMIT currtentAppIsActiveChanged();
 }
 
 bool SystemUICommonApiServer::appIsRunning() const
@@ -247,5 +247,5 @@ void SystemUICommonApiServer::setAppIsRunning(bool newAppIsRunning)
     if (m_appIsRunning == newAppIsRunning)
         return;
     m_appIsRunning = newAppIsRunning;
-    emit appIsRunningChanged();
+    Q_EMIT appIsRunningChanged();
 }

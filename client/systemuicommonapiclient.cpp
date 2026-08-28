@@ -38,7 +38,7 @@ void SystemUICommonApiClient::setAppName(const QString &appName)
     if (appName == m_appName)
         return;
     m_appName = appName;
-    emit appNameChanged();
+    Q_EMIT appNameChanged();
     onSystemuiconfChanged();
 }
 
@@ -108,12 +108,12 @@ void SystemUICommonApiClient::updateProperties(SystemUIMessages properties)
 
     if (m_propertiesCache.value(pros.appState) == AppState::Background ||
             m_propertiesCache.value(pros.appState) == AppState::Active) {
-        emit appAppPropertyChanged();
-        emit actionCommand(Command::Show);
+        Q_EMIT appAppPropertyChanged();
+        Q_EMIT actionCommand(Command::Show);
     }
 
     if (m_propertiesCache.value(pros.command) == Command::Quit ) {
-        emit actionCommand(Command::Quit);
+        Q_EMIT actionCommand(Command::Quit);
     }
 
     m_propertiesCache.remove(pros.appState);
@@ -168,19 +168,19 @@ void SystemUICommonApiClient::updatePropertyCache(const QString &name, const QVa
     m_propertiesCache.insert(name, value);
 
     if (name == pros.appX) {
-        emit appXChanged();
+        Q_EMIT appXChanged();
     } else if (name == pros.appY) {
-        emit appXChanged();
+        Q_EMIT appXChanged();
     } else if (name == pros.appIconWidth) {
-        emit appIconWidthChanged();
+        Q_EMIT appIconWidthChanged();
     } else if (name == pros.appIconHeight) {
-        emit appIconHeightChanged();
+        Q_EMIT appIconHeightChanged();
     } else if (name == pros.appIconPath) {
-        emit appIconPathChanged();
+        Q_EMIT appIconPathChanged();
     } else if (name == pros.pageIndex) {
-        emit pageIndexChanged();
+        Q_EMIT pageIndexChanged();
     }  else if (name == pros.launchMode) {
-        emit lanuchModeChanged();
+        Q_EMIT lanuchModeChanged();
     }
 }
 
@@ -194,7 +194,7 @@ void SystemUICommonApiClient::setBackgroundTask(bool newBackgroundTask)
     if (m_backgroundTask == newBackgroundTask)
         return;
     m_backgroundTask = newBackgroundTask;
-    emit backgroundTaskChanged();
+    Q_EMIT backgroundTaskChanged();
 }
 
 bool SystemUICommonApiClient::applicationAnimation() const
@@ -207,7 +207,7 @@ void SystemUICommonApiClient::setApplicationAnimation(bool newApplicationAnimati
     if (m_applicationAnimation == newApplicationAnimation)
         return;
     m_applicationAnimation = newApplicationAnimation;
-    emit applicationAnimationChanged();
+    Q_EMIT applicationAnimationChanged();
 }
 
 bool SystemUICommonApiClient::coldPageIndex() const
@@ -220,7 +220,7 @@ void SystemUICommonApiClient::setColdPageIndex(bool newColdPageIndex)
     if (m_coldPageIndex == newColdPageIndex)
         return;
     m_coldPageIndex = newColdPageIndex;
-    emit coldPageIndexChanged();
+    Q_EMIT coldPageIndexChanged();
 }
 
 int SystemUICommonApiClient::lanuchMode() const
@@ -298,13 +298,13 @@ void SystemUICommonApiClient::onSystemuiconfChanged()
         QRegularExpression reg;
         QRegularExpressionMatch match;
 
-        foreach (QString tmpStr, str.split("\n")) {
+        Q_FOREACH (QString tmpStr, str.split("\n")) {
             reg.setPattern("background-task=([^\\s]+)");
             match = reg.match(tmpStr, 0);
             if (match.hasMatch()) {
                 QString tmpStr2 = match.captured(1).simplified();
                 if (tmpStr2.contains(",")) {
-                    foreach (QString tmpStr3, tmpStr2.split(",")) {
+                    Q_FOREACH (QString tmpStr3, tmpStr2.split(",")) {
                         if (m_appName == tmpStr3) {
                             setBackgroundTask(true);
                             return;

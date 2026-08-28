@@ -88,7 +88,7 @@ void MusicApi::onReply()
         reply->deleteLater();
         // 超时取消才报错；abortCurrent 主动取消(换歌)静默
         if (m_timedOut) {
-            emit urlError(QStringLiteral("请求超时，请检查网络后重试"));
+            Q_EMIT urlError(QStringLiteral("请求超时，请检查网络后重试"));
         }
         return;
     }
@@ -99,7 +99,7 @@ void MusicApi::onReply()
         if (m_currentReply == reply) m_currentReply = nullptr;
         reply->deleteLater();
         m_timeout->stop();
-        emit urlError(QStringLiteral("网络异常: ") + msg);
+        Q_EMIT urlError(QStringLiteral("网络异常: ") + msg);
         return;
     }
 
@@ -112,7 +112,7 @@ void MusicApi::onReply()
     QJsonParseError parseErr;
     QJsonDocument doc = QJsonDocument::fromJson(data, &parseErr);
     if (parseErr.error != QJsonParseError::NoError) {
-        emit urlError(QStringLiteral("响应解析失败: ") + parseErr.errorString());
+        Q_EMIT urlError(QStringLiteral("响应解析失败: ") + parseErr.errorString());
         return;
     }
 
@@ -122,7 +122,7 @@ void MusicApi::onReply()
 
     if (code == 200 && !url.isEmpty()) {
         qDebug() << "[MusicApi] url ready:" << url;
-        emit urlReady(url);
+        Q_EMIT urlReady(url);
         return;
     }
 
@@ -145,14 +145,14 @@ void MusicApi::onReply()
         break;
     }
     qDebug() << "[MusicApi] error:" << code << msg;
-    emit urlError(msg);
+    Q_EMIT urlError(msg);
 }
 
 void MusicApi::requestLyric(const QString& source, const QString& songId)
 {
     // 目前只支持 wy（网易云）歌词接口
     if (source != "wy") {
-        emit lyricError(QStringLiteral("当前音源不支持歌词"));
+        Q_EMIT lyricError(QStringLiteral("当前音源不支持歌词"));
         return;
     }
 
@@ -190,13 +190,13 @@ void MusicApi::onLyricReply()
 
     if (reply->error() == QNetworkReply::OperationCanceledError) {
         reply->deleteLater();
-        emit lyricError(QStringLiteral("歌词请求超时"));
+        Q_EMIT lyricError(QStringLiteral("歌词请求超时"));
         return;
     }
     if (reply->error() != QNetworkReply::NoError) {
         QString msg = reply->errorString();
         reply->deleteLater();
-        emit lyricError(QStringLiteral("歌词请求失败: ") + msg);
+        Q_EMIT lyricError(QStringLiteral("歌词请求失败: ") + msg);
         return;
     }
 
@@ -206,7 +206,7 @@ void MusicApi::onLyricReply()
     QJsonParseError parseErr;
     QJsonDocument doc = QJsonDocument::fromJson(data, &parseErr);
     if (parseErr.error != QJsonParseError::NoError) {
-        emit lyricError(QStringLiteral("歌词解析失败"));
+        Q_EMIT lyricError(QStringLiteral("歌词解析失败"));
         return;
     }
 
@@ -231,12 +231,12 @@ void MusicApi::onLyricReply()
     }
 
     if (lrcText.isEmpty()) {
-        emit lyricError(QStringLiteral("该歌曲暂无歌词"));
+        Q_EMIT lyricError(QStringLiteral("该歌曲暂无歌词"));
         return;
     }
 
     qDebug() << "[MusicApi] lyric ready, length:" << lrcText.length();
-    emit lyricReady(lrcText);
+    Q_EMIT lyricReady(lrcText);
 }
 
 void MusicApi::downloadCover(const QString& url, const QString& songId)
@@ -249,13 +249,13 @@ void MusicApi::downloadCover(const QString& url, const QString& songId)
     connect(reply, &QNetworkReply::finished, this, [this, reply, songId]() {
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError) {
-            emit coverError(reply->errorString());
+            Q_EMIT coverError(reply->errorString());
             return;
         }
         QByteArray data = reply->readAll();
         if (data.isEmpty())
-            emit coverError(QStringLiteral("空的封面数据"));
+            Q_EMIT coverError(QStringLiteral("空的封面数据"));
         else
-            emit coverReady(songId, data);
+            Q_EMIT coverReady(songId, data);
     });
 }

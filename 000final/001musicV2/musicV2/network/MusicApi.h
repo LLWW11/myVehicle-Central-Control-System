@@ -28,7 +28,7 @@ public:
     // 异步下载封面图片(原始字节)；结果通过信号返回
     void downloadCover(const QString& url, const QString& songId);
 
-signals:
+Q_SIGNALS:
     void urlReady(const QString& url);   // 成功，返回 CDN 直链
     void urlError(const QString& msg);   // 失败(403/429/500/超时/解析错误)
     void lyricReady(const QString& lrc); // 歌词成功(原始 LRC 文本)
@@ -36,7 +36,7 @@ signals:
     void coverReady(const QString& songId, const QByteArray& data); // 封面成功(图片原始字节)
     void coverError(const QString& msg);     // 封面失败
 
-private slots:
+private Q_SLOTS:
     void onReply();
     void onTimeout();
     void onLyricReply();

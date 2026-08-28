@@ -19,7 +19,7 @@ public:
 
     void requestStop(); // 请求停止录像并唤醒正在等待新帧的线程
 
-signals:
+Q_SIGNALS:
 
     void recordingStarted(); // avi文件建立信号
     void recordingFinished(bool success, const QString &path,

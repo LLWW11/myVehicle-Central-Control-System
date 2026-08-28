@@ -77,7 +77,7 @@ void JpegEncoderWorker::run()
                 &error))
         {
 
-            emit encoderError(error);
+            Q_EMIT encoderError(error);
             continue;
         }
 

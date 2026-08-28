@@ -33,13 +33,13 @@ qreal AlbumImage::radius() const
 void AlbumImage::setSource(const QVariant &source)
 {
     m_source = source;
-    emit sourceChanged();
+    Q_EMIT sourceChanged();
 }
 
 void AlbumImage::setAlbum(qreal &radius)
 {
     m_radius = radius;
-    emit radiusChanged();
+    Q_EMIT radiusChanged();
 }
 
 void AlbumImage::paint(QPainter *painter)

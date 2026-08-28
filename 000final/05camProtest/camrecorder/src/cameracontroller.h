@@ -67,10 +67,10 @@ public:
     Q_INVOKABLE void stopRecording();            // 请求停止录像并开始 AVI 安全收尾
     Q_INVOKABLE void startRtsp();                // 开启 RTSP 推流（JpegFrameStore → RTP/JPEG）
     Q_INVOKABLE void stopRtsp();                 // 关闭 RTSP 推流
-    Q_INVOKABLE void refreshUsbStatus(); // /mnt/usb 是否已挂载且可写
+    Q_INVOKABLE void refreshUsbStatus();         // /mnt/usb 是否已挂载且可写
     Q_INVOKABLE bool requestExit();
 
-signals:
+Q_SIGNALS:
     void stateChanged();
     void modeChanged();
     void cameraOpenChanged();
@@ -87,7 +87,7 @@ signals:
     void rtspEnabledChanged();
     void rtspStatusChanged();
 
-private slots:
+private Q_SLOTS:
     void onCaptureStarted(int width,
                           int height,
                           int bytesPerLine);     // 处理摄像头第一帧到达
@@ -100,7 +100,7 @@ private slots:
                              const QString &message); // 处理录像线程收尾结果
     void onRecordingTimer();                          // 每秒更新录像计时
     void onPreviewTimer();
-    void onRtspServerError(const QString &message);   // 处理 RTSP 线程启动失败
+    void onRtspServerError(const QString &message); // 处理 RTSP 线程启动失败
 
 private:
     void setState(const QString &state,

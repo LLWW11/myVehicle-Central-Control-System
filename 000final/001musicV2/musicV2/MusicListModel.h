@@ -38,7 +38,7 @@ public:
         authorRole,
     };
 
-signals:
+Q_SIGNALS:
     void currentIndexChanged();
     void songNameChanged();
 

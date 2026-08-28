@@ -35,7 +35,7 @@ public:
      */
     void requestStop();
 
-signals:
+Q_SIGNALS:
     /**
      * @brief AVI 临时文件已建立，可以显示为正在录像。
      */

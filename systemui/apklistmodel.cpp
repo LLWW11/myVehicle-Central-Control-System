@@ -111,7 +111,7 @@ void ApkListModel::add(QString filePath)
 
     QStringList strList = str.split("\n");
 
-    foreach (QString tmpStr, strList) {
+    Q_FOREACH (QString tmpStr, strList) {
         QStringList list = tmpStr.split(" ");
         if (list.length() == 3 ) {
             QDir dir(fileInfo.absolutePath());
@@ -125,7 +125,7 @@ void ApkListModel::add(QString filePath)
         }
     }
 
-    foreach (Apk apk, tmpApkData) {
+    Q_FOREACH (Apk apk, tmpApkData) {
         addApk(apk.getApkIconPath(), apk.getApkName(), apk.getProgramName(), apk.getInstalled());
     }
 
@@ -133,7 +133,7 @@ void ApkListModel::add(QString filePath)
         setCurrentIndex(0);
     }
     revert();
-    emit countChanged();
+    Q_EMIT countChanged();
 }
 
 void ApkListModel::move(int from, int to) {
@@ -162,7 +162,7 @@ void ApkListModel::remove(int first, int last)
     if (m_currentIndex >= ApkData.count()) {
         setCurrentIndex(ApkData.count() - 1);
     }
-    emit countChanged();
+    Q_EMIT countChanged();
 }
 
 void ApkListModel::removeOne(int index)
@@ -184,10 +184,10 @@ void ApkListModel::setCurrentIndex(const int & i)
 {
     if (i >= ApkData.count() && m_currentIndex != 0) {
         m_currentIndex = 0;
-        emit currentIndexChanged();
+        Q_EMIT currentIndexChanged();
     } else if ((i >= 0) && (i < ApkData.count()) && (m_currentIndex != i)) {
         m_currentIndex = i;
-        emit currentIndexChanged();
+        Q_EMIT currentIndexChanged();
     }
 }
 
@@ -205,5 +205,5 @@ void ApkListModel::addApk(QString apkIconPath, QString apkName, QString programN
     beginInsertRows(QModelIndex(), ApkData.count(), ApkData.count());
     ApkData.append(Apk(apkIconPath, apkName, programName, installed));
     endInsertRows();
-    emit countChanged();
+    Q_EMIT countChanged();
 }

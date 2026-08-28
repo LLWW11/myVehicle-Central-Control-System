@@ -34,7 +34,7 @@ public:
      */
     void requestStop();
 
-signals:
+Q_SIGNALS:
     /**
      * @brief 首次成功采集到一帧后发送。
      * @param width 实际图像宽度。

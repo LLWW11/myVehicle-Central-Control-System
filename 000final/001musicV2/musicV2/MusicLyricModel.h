@@ -29,7 +29,7 @@ public:
         textRole,
     };
 
-signals:
+Q_SIGNALS:
     void currentIndexChanged();
 
 protected:

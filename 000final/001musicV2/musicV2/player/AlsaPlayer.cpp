@@ -21,17 +21,17 @@ PlayerState toQtState(int s)
 }
 
 // 以下三个回调运行在 C 引擎的播放线程上,
-// 这里只做 emit(自动排队到 GUI 线程), 不调用任何引擎接口
+// 这里只做 Q_EMIT(自动排队到 GUI 线程), 不调用任何引擎接口
 void engineStateCb(int state, void* user)
 {
     auto* p = static_cast<AlsaPlayer*>(user);
-    emit p->stateChanged(toQtState(state));
+    Q_EMIT p->stateChanged(toQtState(state));
 }
 
 void engineErrorCb(const char* msg, void* user)
 {
     auto* p = static_cast<AlsaPlayer*>(user);
-    emit p->errorOccurred(QString::fromUtf8(msg));
+    Q_EMIT p->errorOccurred(QString::fromUtf8(msg));
 }
 
 void engineEndCb(void* user)
@@ -123,7 +123,7 @@ void AlsaPlayer::startPlayback(const QString& path)
 
     qDebug() << "[AlsaPlayer] play:" << path;
     if (engine_play(path.toUtf8().constData()) != 0) {
-        emit errorOccurred(QStringLiteral("启动播放失败: ") +
+        Q_EMIT errorOccurred(QStringLiteral("启动播放失败: ") +
                            QString::fromUtf8(engine_last_error()));
     }
 }
@@ -166,17 +166,17 @@ void AlsaPlayer::onPollTimer()
     const qint64 pos = engine_position_ms();
     if (pos != m_lastPos) {
         m_lastPos = pos;
-        emit positionChanged(pos);
+        Q_EMIT positionChanged(pos);
     }
     const qint64 dur = engine_duration_ms();
     if (dur != m_lastDur) {
         m_lastDur = dur;
-        emit durationChanged(dur);
+        Q_EMIT durationChanged(dur);
     }
     const PlayerState st = state();
     if (st != m_lastState) {
         m_lastState = st;
-        emit stateChanged(st);
+        Q_EMIT stateChanged(st);
     }
 }
 
@@ -188,5 +188,5 @@ void AlsaPlayer::onDownloadFinished(const QString& path)
 
 void AlsaPlayer::onDownloadFailed(const QString& msg)
 {
-    emit errorOccurred(QStringLiteral("音频下载失败: ") + msg);
+    Q_EMIT errorOccurred(QStringLiteral("音频下载失败: ") + msg);
 }
