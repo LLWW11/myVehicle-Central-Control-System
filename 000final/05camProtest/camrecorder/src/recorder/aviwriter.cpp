@@ -41,10 +41,8 @@ AviWriter::~AviWriter()
     abort();
 }
 
-/**
- * @brief 创建 AVI 临时文件并写入初始文件头
- */
-bool AviWriter::open(const QString &partPath, int width, int height,
+bool AviWriter::open(const QString &partPath,
+                     int width, int height,
                      int fps, int jpegQuality)
 {
     abort();
@@ -59,7 +57,8 @@ bool AviWriter::open(const QString &partPath, int width, int height,
     m_chunkOffset = 4;
     m_index.clear();
 
-    if (width <= 0 || height <= 0 || fps <= 0 || jpegQuality < 1 || jpegQuality > 100)
+    if (width <= 0 || height <= 0 || fps <= 0 ||
+        jpegQuality < 1 || jpegQuality > 100)
     {
         m_errorString = QStringLiteral("AVI 参数无效");
         return false;
@@ -83,9 +82,6 @@ bool AviWriter::open(const QString &partPath, int width, int height,
     return true;
 }
 
-/**
- * @brief 将一帧 RGB565 数据压缩并写入 AVI
- */
 bool AviWriter::appendFrame(const CameraFrame &frame)
 {
     if (m_file == nullptr)
@@ -109,9 +105,6 @@ bool AviWriter::appendFrame(const CameraFrame &frame)
     return appendJpegFrame(jpeg);
 }
 
-/**
- * @brief 将一段已经编码好的 JPEG 帧写入 AVI
- */
 bool AviWriter::appendJpegFrame(const QByteArray &jpeg)
 {
     if (m_file == nullptr)
@@ -157,9 +150,6 @@ bool AviWriter::appendJpegFrame(const QByteArray &jpeg)
     return true;
 }
 
-/**
- * @brief 写入 idx1 索引、回填文件头并同步关闭文件
- */
 bool AviWriter::finalize()
 {
     if (m_file == nullptr)
@@ -213,7 +203,13 @@ bool AviWriter::finalize()
         return false;
     }
     const long fileSize = std::ftell(m_file);
-    if (fileSize < 8 || !patchLe32(4, static_cast<quint32>(fileSize - 8)) || !patchLe32(48, m_frames) || !patchLe32(60, m_maxFrameSize) || !patchLe32(140, m_frames) || !patchLe32(144, m_maxFrameSize) || !patchLe32(224, static_cast<quint32>(moviEnd - kAviHeaderSize + 4)))
+    if (fileSize < 8 ||
+        !patchLe32(4, static_cast<quint32>(fileSize - 8)) ||
+        !patchLe32(48, m_frames) ||
+        !patchLe32(60, m_maxFrameSize) ||
+        !patchLe32(140, m_frames) ||
+        !patchLe32(144, m_maxFrameSize) ||
+        !patchLe32(224, static_cast<quint32>(moviEnd - kAviHeaderSize + 4)))
     {
         abort();
         return false;
@@ -251,17 +247,11 @@ QString AviWriter::errorString() const
     return m_errorString;
 }
 
-/**
- * @brief 获取已经成功写入的帧数
- */
 quint32 AviWriter::frameCount() const
 {
     return m_frames;
 }
 
-/**
- * @brief 根据当前视频参数构造 232 字节 AVI 头
- */
 QByteArray AviWriter::buildHeader() const
 {
     QByteArray header(kAviHeaderSize, '\0');
@@ -304,9 +294,6 @@ QByteArray AviWriter::buildHeader() const
     return header;
 }
 
-/**
- * @brief 写入精确数量的字节并统一记录错误
- */
 bool AviWriter::writeBytes(const void *data, size_t size)
 {
     if (m_file == nullptr || std::fwrite(data, 1, size, m_file) != size)
@@ -318,14 +305,12 @@ bool AviWriter::writeBytes(const void *data, size_t size)
     return true;
 }
 
-/**
- * @brief 跳转到指定文件偏移并写入一个小端 32 位整数
- */
 bool AviWriter::patchLe32(long offset, quint32 value)
 {
     uchar bytes[4];
     putLe32(bytes, value);
-    if (std::fseek(m_file, offset, SEEK_SET) != 0 || !writeBytes(bytes, sizeof(bytes)))
+    if (std::fseek(m_file, offset, SEEK_SET) != 0 ||
+        !writeBytes(bytes, sizeof(bytes)))
     {
         if (m_errorString.isEmpty())
             m_errorString = QStringLiteral("回填 AVI 文件头失败");
