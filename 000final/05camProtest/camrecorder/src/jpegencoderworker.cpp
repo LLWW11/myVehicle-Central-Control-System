@@ -7,15 +7,14 @@
 namespace
 {
 
-    constexpr int kJpegQuality = 85;
+    constexpr int kJpegQuality = 80;
     constexpr int kCaptureDivider = 2;
 
 }
 
-JpegEncoderWorker::JpegEncoderWorker(
-    FrameStore *rawStore,
-    JpegFrameStore *jpegStore,
-    QObject *parent)
+JpegEncoderWorker::JpegEncoderWorker(FrameStore *rawStore,
+                                     JpegFrameStore *jpegStore,
+                                     QObject *parent)
     : QThread(parent), m_rawStore(rawStore), m_jpegStore(jpegStore)
 {
 }
@@ -51,8 +50,8 @@ void JpegEncoderWorker::run()
                 100,
                 &frame))
         {
-            // 帧无效（如 clear 之后 generation 领先）时 waitForNewFrame 会立即返回，
-            // 此处必须同步推进 generation，否则变成 100% CPU 忙转死循环。
+            // 帧无效（比如 clear 之后 generation 领先）时 waitForNewFrame 会立即返回，
+            // 此处必须同步推进 generation，否则变成 100% CPU 忙转死循环
             if (frame.generation > previousGeneration)
                 previousGeneration = frame.generation;
             continue;
@@ -62,8 +61,6 @@ void JpegEncoderWorker::run()
 
         ++capturedFrames;
 
-        // CameraCapture 为 30 FPS。
-        // 每两帧取一帧，统一生成约 15 FPS JPEG。
         if ((capturedFrames % kCaptureDivider) != 0)
             continue;
 

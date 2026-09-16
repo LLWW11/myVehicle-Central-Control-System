@@ -10,9 +10,8 @@ class FrameStore;
 class JpegEncoderWorker;
 class JpegFrameStore;
 class RtspServerWorker;
-/**
- * @brief 管理摄像头、两种工作模式、U 盘状态和录像线程的 QML 控制器
- */
+
+//   管理摄像头、两种工作模式、U 盘状态和录像线程的 QML 控制器
 class CameraController : public QObject
 {
     Q_OBJECT
@@ -62,7 +61,7 @@ public:
 
     Q_INVOKABLE void openCamera();
     Q_INVOKABLE void closeCamera();
-    Q_INVOKABLE void setMode(int requestedMode); // 切换 Mode1 或 Mode2，摄像头已开启时保持不断流
+    Q_INVOKABLE void setMode(int requestedMode); // 切换 Mode1或Mode2，摄像头已开启时保持不断流
     Q_INVOKABLE void startRecording();           // 在 Mode2 创建录像线程并开始写入 U 盘
     Q_INVOKABLE void stopRecording();            // 请求停止录像并开始 AVI 安全收尾
     Q_INVOKABLE void startRtsp();                // 开启 RTSP 推流（JpegFrameStore → RTP/JPEG）

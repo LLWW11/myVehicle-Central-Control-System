@@ -4,10 +4,7 @@
 #include <QQuickImageProvider>
 
 class FrameStore;
-
-/**
- * @brief 将 FrameStore 中的最新帧以 image://camera 地址提供给 QML。
- */
+// 将 FrameStore 中的最新帧以 image://camera 地址提供给 QML。
 class PreviewImageProvider : public QQuickImageProvider
 {
 public:
@@ -32,4 +29,3 @@ private:
 };
 
 #endif // PREVIEWIMAGEPROVIDER_H
-

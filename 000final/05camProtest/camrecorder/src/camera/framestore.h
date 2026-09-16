@@ -22,13 +22,13 @@ class FrameStore // 最新一帧数据，某个线程太慢会跳过这个帧，
 {
 public:
     FrameStore();
-    // 发布一个新帧，大小为bytesPerLine × width × height
+    // 生产者发布一个新帧，大小为bytesPerLine × width × height
     quint64 publish(const QByteArray &bytes,
                     int width,
                     int height,
                     int bytesPerLine);
     CameraFrame latest() const;
-    // 等待获取最新一帧，获得新帧时返回 true，超时或仅被唤醒时返回 false
+    // 消费者等待获取最新一帧，获得新帧时返回 true，超时或仅被唤醒时返回 false
     bool waitForNewFrame(quint64 previousGeneration,
                          int timeoutMs,
                          CameraFrame *frame);
@@ -38,9 +38,9 @@ public:
 
 private:
     mutable QMutex m_mutex;
-    QWaitCondition m_frameArrived;
-    CameraFrame m_latestFrame;
-    quint64 m_generation = 0;
+    QWaitCondition m_frameArrived; // 条件变量，用于唤醒其他线程
+    CameraFrame m_latestFrame;     // 最新一帧
+    quint64 m_generation = 0;      // 帧版本号
 };
 
 #endif // FRAMESTORE_H

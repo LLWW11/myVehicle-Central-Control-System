@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
                             new PreviewImageProvider(&frameStore));
     engine.rootContext()->setContextProperty(QStringLiteral("cameraController"),
                                              &controller);
-
+    // 定义了一个URL，前后台本地socket通信
     const QUrl mainUrl(QStringLiteral("qrc:/qml/main.qml"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated, &app, [mainUrl](QObject *object, const QUrl &objectUrl)
                      {

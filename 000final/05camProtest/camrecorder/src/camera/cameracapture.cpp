@@ -13,7 +13,7 @@
 #include <sys/select.h>
 #include <unistd.h>
 
-namespace
+namespace // 匿名
 {
 
     const char kCameraDevice[] = "/dev/video1";
@@ -22,27 +22,21 @@ namespace
     constexpr int kCaptureFps = 30;
     constexpr unsigned int kBufferCount = 3;
 
-    /**
-     * @brief 自动重试被信号中断的 ioctl 调用。
-     * @param fd 设备文件描述符。
-     * @param request ioctl 请求码。
-     * @param argument ioctl 参数。
-     * @return ioctl 的最终返回值。
-     */
-    int safeIoctl(int fd, unsigned long request, void *argument)
+    int safeIoctl(int fd, unsigned long ioctlrequest, void *argument)
     {
         int result = -1;
         do
         {
-            result = ::ioctl(fd, request, argument);
-        } while (result < 0 && errno == EINTR);
+            result = ::ioctl(fd, ioctlrequest, argument);
+        } while (result < 0 && errno == EINTR); // SIG中断了会一直尝试ioctl
         return result;
     }
 
 }
 
 CameraCapture::CameraCapture(FrameStore *frameStore, QObject *parent)
-    : QThread(parent), m_frameStore(frameStore)
+    : QThread(parent),
+      m_frameStore(frameStore)
 {
 }
 
@@ -54,14 +48,13 @@ CameraCapture::~CameraCapture()
 
 void CameraCapture::requestStop()
 {
-    m_stopRequested.storeRelease(1); //
+    m_stopRequested.storeRelease(1);
 }
 
 void CameraCapture::run()
 {
     bool firstFrame = true;
 
-    // 对象每次开启都会重新创建，不在此重置标志，避免吞掉启动瞬间的停止请求
     if (m_stopRequested.loadAcquire() != 0)
     {
         Q_EMIT captureStopped();
@@ -84,6 +77,7 @@ void CameraCapture::run()
         timeval timeout;
         timeout.tv_sec = 0;
         timeout.tv_usec = 200000;
+        // 如果用while()就是忙轮询100%占用CPU
         const int ready = ::select(m_fd + 1, &readSet, nullptr, nullptr, &timeout);
         if (ready < 0)
         {
@@ -104,7 +98,8 @@ void CameraCapture::run()
 
 bool CameraCapture::openDevice()
 {
-    m_fd = open(kCameraDevice, O_RDWR | O_NONBLOCK);
+    const quint32 capabilities;
+    m_fd = open(kCameraDevice, O_RDWR | O_NONBLOCK); // 非阻塞的打开
     if (m_fd < 0)
     {
         reportSystemError(QStringLiteral("打开 /dev/video1"));
@@ -118,10 +113,11 @@ bool CameraCapture::openDevice()
         reportSystemError(QStringLiteral("查询摄像头能力"));
         return false;
     }
+    if (capability.capabilities & V4L2_CAP_DEVICE_CAPS)
+        capabilities = capability.device_caps; // 实际硬件功能
+    else
+        apabilities = capability.capabilities; // 实际硬件功能
 
-    const quint32 capabilities = (capability.capabilities & V4L2_CAP_DEVICE_CAPS)
-                                     ? capability.device_caps
-                                     : capability.capabilities;
     if ((capabilities & V4L2_CAP_VIDEO_CAPTURE) == 0 || (capabilities & V4L2_CAP_STREAMING) == 0)
     {
         Q_EMIT captureError(QStringLiteral("/dev/video1 不支持视频采集或 MMAP 流模式"));
@@ -129,7 +125,7 @@ bool CameraCapture::openDevice()
     }
     return true;
 }
-
+// 设置摄像头格式
 bool CameraCapture::configureDevice()
 {
     v4l2_format format;
@@ -151,7 +147,7 @@ bool CameraCapture::configureDevice()
         return false;
     }
 
-    m_width = static_cast<int>(format.fmt.pix.width);
+    m_width = static_cast<int>(format.fmt.pix.width); // 强转为int
     m_height = static_cast<int>(format.fmt.pix.height);
     m_bytesPerLine = static_cast<int>(format.fmt.pix.bytesperline);
     if (m_bytesPerLine < m_width * 2)
@@ -172,6 +168,7 @@ bool CameraCapture::configureDevice()
     return true;
 }
 
+// 申请帧缓冲然后mmap
 bool CameraCapture::mapBuffers()
 {
     v4l2_requestbuffers request;
@@ -233,6 +230,7 @@ bool CameraCapture::mapBuffers()
     return true;
 }
 
+// 开始采集
 bool CameraCapture::startStreaming()
 {
     v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -245,6 +243,7 @@ bool CameraCapture::startStreaming()
     return true;
 }
 
+// 采集到一帧之后
 bool CameraCapture::captureOneFrame(bool *firstFrame)
 {
     v4l2_buffer buffer;
@@ -258,7 +257,7 @@ bool CameraCapture::captureOneFrame(bool *firstFrame)
         reportSystemError(QStringLiteral("取出摄像头帧"));
         return false;
     }
-
+    // 判断采集到的一帧是否有效
     bool validBuffer = buffer.index < static_cast<unsigned int>(m_buffers.size());
     if (validBuffer)
     {
@@ -316,11 +315,8 @@ void CameraCapture::cleanup()
         m_frameStore->clear();
 }
 
-/**
- * @brief 记录最近错误并发送 captureError 信号。
- */
 void CameraCapture::reportSystemError(const QString &operation)
 {
     Q_EMIT captureError(QStringLiteral("%1失败：%2")
-                          .arg(operation, QString::fromLocal8Bit(std::strerror(errno))));
+                            .arg(operation, QString::fromLocal8Bit(std::strerror(errno))));
 }

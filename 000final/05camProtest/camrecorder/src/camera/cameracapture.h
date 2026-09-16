@@ -26,7 +26,7 @@ Q_SIGNALS:
     void captureStopped();
 
 protected:
-    void run() override; // V4L2 初始化、采集循环和统一清理
+    void run() override;
 
 private:
     struct MappedBuffer
@@ -40,7 +40,7 @@ private:
     bool startStreaming();                  //
     bool captureOneFrame(bool *firstFrame); // 采集一帧并发布到 FrameStore
     void cleanup();
-    void reportSystemError(const QString &operation); // 记录错误operation并发送captureError 信号
+    void reportSystemError(const QString &operation); // 记录错误operation并发送信号
 
     FrameStore *m_frameStore = nullptr;
     QAtomicInt m_stopRequested{0};

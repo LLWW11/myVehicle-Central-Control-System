@@ -270,7 +270,7 @@ void CameraController::onCaptureStarted(int width, int height, int bytesPerLine)
                              : QStringLiteral("Mode2Idle"),
              m_mode == Mode1 ? QStringLiteral("Mode1：仅采集和预览")
                              : QStringLiteral("Mode2：可开始录像"));
-    startJpegEncoder();
+    startJpegEncoder(); // 有点不太好，开始采集就开始JPEG也就是说JPEG编码是从一直存在的
 }
 
 void CameraController::onCaptureError(const QString &message)

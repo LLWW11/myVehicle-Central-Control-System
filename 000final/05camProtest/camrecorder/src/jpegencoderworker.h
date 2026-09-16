@@ -9,10 +9,8 @@
 class FrameStore;
 class JpegFrameStore;
 
-/**
- * @brief 从 FrameStore 取 RGB565 帧编码为 JPEG 并发布到 JpegFrameStore 的线程
- */
-class JpegEncoderWorker : public QThread // 编码线程
+// 从 FrameStore 取 RGB565 帧编码为 JPEG 并发布到 JpegFrameStore 的线程
+class JpegEncoderWorker : public QThread
 {
     Q_OBJECT
 
