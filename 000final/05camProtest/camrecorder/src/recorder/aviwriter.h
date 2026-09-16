@@ -15,30 +15,16 @@ public:
     AviWriter();
     ~AviWriter();
 
-    /**
-     * @brief 创建 AVI 临时文件并写入初始文件头
-     * @param partPath 录像期间使用的 .avi.part 路径
-     * @param width 视频宽度
-     * @param height 视频高度
-     * @param fps AVI 标称帧率
-     * @param jpegQuality JPEG 压缩质量
-     * @return 成功返回 true，失败原因通过 errorString() 获取
-     */
-    bool open(const QString &partPath, int width, int height,
-              int fps, int jpegQuality);
+    // AVI临时文件.avi.part写入文件头
+    bool open(const QString &partPath,
+              int width, int height,
+              int fps, // 视频的帧率15fps
+              int jpegQuality);
 
-    /**
-     * @brief 将一帧 RGB565 数据压缩并写入 AVI
-     * @param frame 摄像头帧
-     * @return 写入成功返回 true
-     */
+    // 一帧 RGB565 数据压缩并写入 AVI
     bool appendFrame(const CameraFrame &frame);
 
-    /**
-     * @brief 将一段已经编码好的 JPEG 帧写入 AVI
-     * @param jpeg 现成的 JPEG 数据
-     * @return 写入成功返回 true
-     */
+    // 将一段已经编码好的 JPEG 帧写入 AVI
     bool appendJpegFrame(const QByteArray &jpeg);
 
     /**
