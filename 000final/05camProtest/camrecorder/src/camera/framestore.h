@@ -18,11 +18,11 @@ struct CameraFrame // 摄像头一帧数据
     QImage toImage() const; // RGB565数据转换为QImage,无效时返回空
 };
 
-class FrameStore // 最新一帧数据，某个线程太慢会跳过这个帧，录像线程提供条件等待
+class FrameStore // 最新一帧数据，用数组装载，消费者太慢会覆盖
 {
 public:
     FrameStore();
-    // 生产者发布一个新帧，大小为bytesPerLine × width × height
+
     quint64 publish(const QByteArray &bytes,
                     int width,
                     int height,
@@ -39,8 +39,8 @@ public:
 private:
     mutable QMutex m_mutex;
     QWaitCondition m_frameArrived; // 条件变量，用于唤醒其他线程
-    CameraFrame m_latestFrame;     // 最新一帧
-    quint64 m_generation = 0;      // 帧版本号
+    CameraFrame m_latestFrame;
+    quint64 m_generation = 0;
 };
 
 #endif // FRAMESTORE_H

@@ -354,9 +354,6 @@ void CameraController::onRecordingFinished(bool success, const QString &path,
     refreshUsbStatus();
 }
 
-/**
- * @brief 每秒更新录像计时
- */
 void CameraController::onRecordingTimer()
 {
     ++m_recordingSeconds;

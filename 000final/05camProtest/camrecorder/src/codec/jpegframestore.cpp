@@ -23,7 +23,7 @@ quint64 JpegFrameStore::publish(const QByteArray &jpeg,
 JpegFrame JpegFrameStore::latest() const
 {
     QMutexLocker locker(&m_mutex);
-    return m_latestFrame;
+    return m_latestFrame; // 加锁，拷贝最新一帧
 }
 
 bool JpegFrameStore::waitForNewFrame(

@@ -54,7 +54,7 @@ private:
     int m_jpegQuality = 0;
     quint32 m_frames = 0;
     quint32 m_maxFrameSize = 0;
-    quint32 m_chunkOffset = 4;
+    quint32 m_chunkOffset = 4; // 初始化为4所以就是AVI头部的"movi"这4B开始记录
     QVector<IndexEntry> m_index;
 };
 

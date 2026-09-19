@@ -10,6 +10,7 @@
 #include <cstring>
 #include <unistd.h>
 
+// 结合AVI_FORMAT.md看
 namespace
 {
 
@@ -55,7 +56,7 @@ bool AviWriter::open(const QString &partPath,
     m_frames = 0;
     m_maxFrameSize = 0;
     m_chunkOffset = 4;
-    m_index.clear();
+    m_index.clear(); // vector记录一下每一帧的结尾的位置，用于填充
 
     if (width <= 0 || height <= 0 || fps <= 0 ||
         jpegQuality < 1 || jpegQuality > 100)
@@ -112,7 +113,9 @@ bool AviWriter::appendJpegFrame(const QByteArray &jpeg)
         m_errorString = QStringLiteral("AVI 文件尚未打开");
         return false;
     }
-    if (jpeg.size() < 4 || static_cast<unsigned char>(jpeg[0]) != 0xff || static_cast<unsigned char>(jpeg[1]) != 0xd8)
+    if (jpeg.size() < 4 ||
+        static_cast<unsigned char>(jpeg[0]) != 0xff ||
+        static_cast<unsigned char>(jpeg[1]) != 0xd8)
     {
         m_errorString = QStringLiteral("JPEG 帧无效");
         return false;
@@ -121,17 +124,18 @@ bool AviWriter::appendJpegFrame(const QByteArray &jpeg)
     IndexEntry entry;
     entry.offset = m_chunkOffset;
     entry.size = static_cast<quint32>(jpeg.size());
-    m_index.append(entry);
+    m_index.append(entry); // 记录每一帧大小和记下这帧相对于"movi"的偏移
 
     uchar chunkHeader[8];
     putFourcc(chunkHeader, "00dc");
     putLe32(chunkHeader + 4, entry.size);
-    if (!writeBytes(chunkHeader, sizeof(chunkHeader)) || !writeBytes(jpeg.constData(), static_cast<size_t>(jpeg.size())))
+    if (!writeBytes(chunkHeader, sizeof(chunkHeader)) ||
+        !writeBytes(jpeg.constData(), static_cast<size_t>(jpeg.size())))
     {
         m_index.removeLast();
         return false;
     }
-
+    // 每个前面 8U 是因为"00dc" + 帧数据长度字段
     m_chunkOffset += 8U + entry.size;
     if ((entry.size & 1U) != 0U)
     {
@@ -141,10 +145,10 @@ bool AviWriter::appendJpegFrame(const QByteArray &jpeg)
             m_index.removeLast();
             return false;
         }
-        ++m_chunkOffset;
+        m_chunkOffset++;
     }
 
-    ++m_frames;
+    m_frames++;
     if (entry.size > m_maxFrameSize)
         m_maxFrameSize = entry.size;
     return true;
@@ -164,7 +168,7 @@ bool AviWriter::finalize()
         return false;
     }
 
-    const long moviEnd = std::ftell(m_file);
+    const long moviEnd = std::ftell(m_file); // 数据帧写完，文件尾部的位置
     if (moviEnd < 0)
     {
         m_errorString = QStringLiteral("读取 AVI 写入位置失败");
@@ -185,8 +189,8 @@ bool AviWriter::finalize()
     {
         uchar indexData[16];
         putFourcc(indexData, "00dc");
-        putLe32(indexData + 4, 0x10U);
-        putLe32(indexData + 8, entry.offset);
+        putLe32(indexData + 4, 0x10U);        // 帧属性标志
+        putLe32(indexData + 8, entry.offset); // 相对于"movi"字节偏移量
         putLe32(indexData + 12, entry.size);
         if (!writeBytes(indexData, sizeof(indexData)))
         {
@@ -258,6 +262,7 @@ QByteArray AviWriter::buildHeader() const
     uchar *data = reinterpret_cast<uchar *>(header.data());
 
     putFourcc(data + 0, "RIFF");
+    // putFourcc(data + 4, FileSize); //最后再写
     putFourcc(data + 8, "AVI ");
     putFourcc(data + 12, "LIST");
     putLe32(data + 16, 200);
@@ -290,6 +295,7 @@ QByteArray AviWriter::buildHeader() const
     putLe16(data + 194, 24);
     putFourcc(data + 196, "MJPG");
     putFourcc(data + 220, "LIST");
+    // putFourcc(data + 224, movi长度); //最后再写
     putFourcc(data + 228, "movi");
     return header;
 }

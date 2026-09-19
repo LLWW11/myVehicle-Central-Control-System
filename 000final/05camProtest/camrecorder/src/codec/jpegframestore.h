@@ -35,7 +35,7 @@ struct JpegFrame
 class JpegFrameStore
 {
 public:
-    // 发布一个新帧，大小为 bytesPerLine × width × height
+    // 发布一个新帧QBytearray，大小为 bytesPerLine × width × height
     quint64 publish(const QByteArray &jpeg,
                     int width,
                     int height);
@@ -54,9 +54,9 @@ private:
     mutable QMutex m_mutex;
     QWaitCondition m_frameArrived;
 
-    JpegFrame m_latestFrame;
+    JpegFrame m_latestFrame; // 最新一帧
 
-    quint64 m_generation = 0;
+    quint64 m_generation = 0; // 帧版本号
 };
 
 #endif

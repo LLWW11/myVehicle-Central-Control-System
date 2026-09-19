@@ -26,9 +26,6 @@ Q_SIGNALS:
                            const QString &message); // 录像完成的信号函数
 
 protected:
-    /**
-     * @brief 执行降帧取样、JPEG 编码、AVI 写入和最终改名
-     */
     void run() override;
 
 private:

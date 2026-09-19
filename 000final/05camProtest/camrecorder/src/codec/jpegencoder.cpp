@@ -12,9 +12,6 @@
 namespace
 {
 
-    /**
-     * @brief 扩展 libjpeg 错误管理器，使错误能够返回调用方而不终止进程
-     */
     struct JpegErrorManager
     {
         jpeg_error_mgr base;
@@ -22,9 +19,6 @@ namespace
         char message[JMSG_LENGTH_MAX];
     };
 
-    /**
-     * @brief 保存一次 JPEG 编码的全部可变状态，确保 longjmp 后仍可安全清理
-     */
     struct JpegEncodeState
     {
         jpeg_compress_struct compressor;
@@ -35,20 +29,14 @@ namespace
         bool compressorCreated = false;
     };
 
-    /**
-     * @brief 捕获 libjpeg 致命错误并跳回当前编码函数
-     */
-    void onJpegError(j_common_ptr common)
+    void onJpegError(j_common_ptr common) // 捕获 libjpeg 致命错误并跳回当前编码函数
     {
         JpegErrorManager *manager = reinterpret_cast<JpegErrorManager *>(common->err);
         (*common->err->format_message)(common, manager->message);
         longjmp(manager->jumpBuffer, 1);
     }
 
-    /**
-     * @brief 把错误信息填入可选输出参数
-     */
-    void setError(QString *errorString, const QString &message)
+    void setError(QString *errorString, const QString &message) // 把错误信息填入可选输出参数
     {
         if (errorString != nullptr)
             *errorString = message;
@@ -56,11 +44,7 @@ namespace
 
 } // namespace
 
-/**
- * @brief 将一帧 RGB565 摄像头帧压缩为内存中的 JPEG
- *
- * 该编码器不依赖 AVI、不持有全局状态，可被录像、预览、RTSP 等模块复用
- */
+// RGB565 → JPEG，直接保存到QByteArray
 bool JpegEncoder::encode(const CameraFrame &frame,
                          int quality,
                          QByteArray *jpeg,
