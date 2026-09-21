@@ -105,8 +105,9 @@ private:
     void setState(const QString &state,
                   const QString &message);         // 设置状态名称和用户提示
     void setErrorMessage(const QString &message);  // 设置并通知错误信息
-    void startJpegEncoder();                       // 启动共享JPEG编码线程
+    bool startJpegEncoder();                       // 启动共享JPEG编码线程
     void releaseJpegEncoder();                     // 停止并释放共享JPEG编码线程，清空共享 JPEG 帧
+    void syncJpegEncoder();                        // 按“是否还有JPEG消费者”启动或释放编码线程
     bool isMountedPath(const QString &path) const; // 检查路径是否为真实挂载点
     bool buildRecordingPaths(QString *partPath,
                              QString *finalPath); // 为下一段录像生成唯一的临时路径与最终路径

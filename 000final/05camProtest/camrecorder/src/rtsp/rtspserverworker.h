@@ -12,11 +12,6 @@
 
 class JpegFrameStore;
 
-/**
- * 内部所有 GstRTSPServer/GLib 回调都在本线程的 private GMainLoop 里串行执行,
- * 因此 m_appsrc 等 GLib 手柄不需要加锁,
- * 唯独它们在 run() 里创建、又会被 GUI 线程的 requestStop() 访问,由 m_loopMutex 保护。
- */
 // 从 JpegFrameStore 拉 JPEG 帧,经 GStreamer 以 RTP/JPEG 向外提供 RTSP 直播
 class RtspServerWorker : public QThread
 {

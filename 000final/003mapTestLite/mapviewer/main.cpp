@@ -44,15 +44,9 @@
 #include "seriallocation.h"
 #include "systemuicommonapiclient.h"
 
-/**
- * @brief 创建地图应用、串口定位对象并加载综合桌面客户端界面。
- * @param argc 命令行参数数量。
- * @param argv 命令行参数数组。
- * @return 应用退出码；QML 根对象创建失败时返回 -1。
- */
+// 创建地图应用、串口定位对象并加载综合桌面客户端界面
 int main(int argc, char *argv[])
 {
-    // 在创建应用对象前启用高 DPI 缩放
     QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QGuiApplication application(argc, argv);
 
@@ -60,7 +54,6 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    // 注册综合桌面通信客户端，供 QML 实例化。
     qmlRegisterType<SystemUICommonApiClient>(
         "com.alientek.qmlcomponents", 1, 0, "SystemUICommonApiClient");
 

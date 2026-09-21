@@ -109,8 +109,7 @@ void SerialLocation::readAvailableData()
         Q_EMIT statusChanged();
     }
 }
-void SerialLocation::handleSerialError(
-    QSerialPort::SerialPortError error)
+void SerialLocation::handleSerialError(QSerialPort::SerialPortError error)
 {
     if (error == QSerialPort::NoError)
         return;

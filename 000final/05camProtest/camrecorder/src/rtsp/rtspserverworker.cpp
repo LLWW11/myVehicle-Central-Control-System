@@ -27,14 +27,6 @@ RtspServerWorker::~RtspServerWorker()
     wait(5000); // 兜底超时
 }
 
-/**
- * 请求停止。三件事:
- *  1) 原子置位,让 pushLatestFrame 的定时源自行拆除;
- *  2) 把 "g_main_loop_quit()" 作为 idle 回调投递进目标 context —— 这是 GLib
- *     明确允许跨线程使用的 API(g_main_context_invoke 系列线程安全),
- *     保证 quit 由 loop 所属线程亲手执行;
- *  3) 全程持 m_loopMutex,避免与 run() 中还在创建阶段的手柄竞争。
- */
 void RtspServerWorker::requestStop()
 {
     m_stopRequested.storeRelease(1);

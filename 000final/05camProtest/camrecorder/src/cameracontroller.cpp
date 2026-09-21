@@ -188,6 +188,14 @@ void CameraController::startRecording()
     Q_EMIT stoppingChanged();
     setState(QStringLiteral("StartingRecord"), QStringLiteral("正在创建录像文件…"));
 
+    if (!startJpegEncoder()) // 先启动编码线程(生产者)
+    {
+        m_stopping = false;
+        Q_EMIT stoppingChanged();
+        setErrorMessage(QStringLiteral("JPEG 编码线程启动失败，无法开始录像"));
+        setState(QStringLiteral("Mode2Idle"), QStringLiteral("Mode2：可开始录像"));
+        return;
+    }
     m_recorder = new AviRecorderWorker(m_jpegFrameStore, partPath, finalPath, this);
     connect(m_recorder, &AviRecorderWorker::recordingStarted,
             this, &CameraController::onRecordingStarted,
@@ -270,7 +278,9 @@ void CameraController::onCaptureStarted(int width, int height, int bytesPerLine)
                              : QStringLiteral("Mode2Idle"),
              m_mode == Mode1 ? QStringLiteral("Mode1：仅采集和预览")
                              : QStringLiteral("Mode2：可开始录像"));
-    startJpegEncoder(); // 有点不太好，开始采集就开始JPEG也就是说JPEG编码是从一直存在的
+    // 开始采集就开始JPEG也就是说JPEG编码是从一直存在的
+    // 由于预览时直接将RGB565转为QImage
+    // startJpegEncoder();
 }
 
 void CameraController::onCaptureError(const QString &message)
@@ -351,6 +361,7 @@ void CameraController::onRecordingFinished(bool success, const QString &path,
         setState(QStringLiteral("Error"), QStringLiteral("录像失败"));
     }
     releaseRecorder();
+    syncJpegEncoder();
     refreshUsbStatus();
 }
 
@@ -436,7 +447,7 @@ void CameraController::releaseRecorder()
     delete m_recorder;
     m_recorder = nullptr;
 }
-
+/*
 void CameraController::startJpegEncoder()
 {
     if (m_jpegEncoderWorker != nullptr || m_frameStore == nullptr)
@@ -449,7 +460,31 @@ void CameraController::startJpegEncoder()
             Qt::QueuedConnection); // 跨线程信号必须 Queued
     m_jpegEncoderWorker->start();
 }
+*/
+bool CameraController::startJpegEncoder()
+{
+    if (m_jpegEncoderWorker != nullptr)
+        return true; // 已在运行：幂等返回（syncJpegEncoder 会反复调它）
+    if (m_frameStore == nullptr)
+        return false;
 
+    m_jpegEncoderWorker = new JpegEncoderWorker(m_frameStore, m_jpegFrameStore, this);
+    m_jpegEncoderWorker->setObjectName(QStringLiteral("JpegEncoderWorker"));
+
+    connect(m_jpegEncoderWorker, &JpegEncoderWorker::encoderError,
+            this, &CameraController::onEncoderError,
+            Qt::QueuedConnection); // 跨线程信号必须 Queued
+    m_jpegEncoderWorker->start();
+    return true;
+}
+
+void CameraController::syncJpegEncoder()
+{
+    if (m_recorder != nullptr || m_rtspServer != nullptr)
+        startJpegEncoder(); // 只有帧的需要编码消费的时候才启动编码
+    else
+        releaseJpegEncoder();
+}
 void CameraController::releaseJpegEncoder()
 {
     if (m_jpegEncoderWorker != nullptr)
@@ -472,8 +507,6 @@ void CameraController::onEncoderError(const QString &message)
     setErrorMessage(message);
 }
 
-/* ======================= RTSP 推流控制 ======================= */
-
 void CameraController::startRtsp()
 {
     if (!m_cameraOpen || m_cameraBusy)
@@ -491,7 +524,12 @@ void CameraController::startRtsp()
 
     setErrorMessage(QString());
     setState(m_state, QStringLiteral("正在开启 RTSP…"));
-
+    if (!startJpegEncoder())
+    {
+        setErrorMessage(QStringLiteral("JPEG 编码线程启动失败，无法开启 RTSP"));
+        setState(m_state, QStringLiteral("RTSP 未开启"));
+        return;
+    }
     // m_rtspServer = new RtspServerWorker(m_jpegFrameStore, this);
     m_rtspServer = new RtspServerWorker(m_jpegFrameStore, 8554,
                                         QStringLiteral("/camera"), this);
@@ -504,6 +542,7 @@ void CameraController::startRtsp()
                 QStringLiteral("RTSP 已开启：rtsp://<开发板IP>:8554/camera");
         Q_EMIT rtspStatusChanged();
         setState(m_state, QStringLiteral("RTSP 推流已开启")); }, Qt::QueuedConnection);
+
     connect(m_rtspServer, &RtspServerWorker::serverError,
             this, &CameraController::onRtspServerError,
             Qt::QueuedConnection); // 跨线程信号一律 Queued，槽落回 GUI 线程
@@ -513,6 +552,7 @@ void CameraController::startRtsp()
 void CameraController::stopRtsp()
 {
     releaseRtsp();
+    syncJpegEncoder(); // RTSP 已释放，若没有录像在跑就收掉编码线程
     m_rtspStatus = QStringLiteral("RTSP 未开启");
     Q_EMIT rtspStatusChanged();
     setState(m_state, QStringLiteral("RTSP 已关闭"));
@@ -522,6 +562,7 @@ void CameraController::onRtspServerError(const QString &message)
 {
     setErrorMessage(message);
     releaseRtsp(); // 清理启动失败的线程对象，允许再次点击重试
+    syncJpegEncoder();
 }
 
 void CameraController::releaseRtsp()

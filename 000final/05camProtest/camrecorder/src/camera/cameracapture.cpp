@@ -98,7 +98,7 @@ void CameraCapture::run()
 
 bool CameraCapture::openDevice()
 {
-    const quint32 capabilities;
+    quint32 capabilities;
     m_fd = open(kCameraDevice, O_RDWR | O_NONBLOCK); // 非阻塞的打开
     if (m_fd < 0)
     {
@@ -116,9 +116,10 @@ bool CameraCapture::openDevice()
     if (capability.capabilities & V4L2_CAP_DEVICE_CAPS)
         capabilities = capability.device_caps; // 实际硬件功能
     else
-        apabilities = capability.capabilities; // 实际硬件功能
+        capabilities = capability.capabilities; // 实际硬件功能
 
-    if ((capabilities & V4L2_CAP_VIDEO_CAPTURE) == 0 || (capabilities & V4L2_CAP_STREAMING) == 0)
+    if ((capabilities & V4L2_CAP_VIDEO_CAPTURE) == 0 ||
+        (capabilities & V4L2_CAP_STREAMING) == 0)
     {
         Q_EMIT captureError(QStringLiteral("/dev/video1 不支持视频采集或 MMAP 流模式"));
         return false;
