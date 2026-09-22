@@ -3,6 +3,7 @@ QT += core gui qml quick quickcontrols2
 CONFIG += c++14
 CONFIG += thread
 
+
 TEMPLATE = app
 TARGET = camrecorderPro
 DEFINES += QT_NO_KEYWORDS
@@ -101,3 +102,14 @@ target.path = /opt/ui/src/apps
 SYSTEMUI_ROOT = $$clean_path($$PWD/../../..)
 include($$SYSTEMUI_ROOT/client/client.pri)
 INCLUDEPATH += $$SYSTEMUI_ROOT/client
+
+CONFIG -= release
+CONFIG -= debug_and_release
+CONFIG += debug
+CONFIG -= strip
+
+QMAKE_CFLAGS_DEBUG += -g -O0
+QMAKE_CXXFLAGS_DEBUG += -g -O0
+
+QMAKE_LFLAGS -= -s
+QMAKE_LFLAGS -= -Wl,-s

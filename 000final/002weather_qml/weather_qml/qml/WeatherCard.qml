@@ -1,11 +1,3 @@
-/******************************************************************
-Copyright © Deng Zhimao Co., Ltd. 2021-2030. All rights reserved.
-* @brief         WeatherCard.qml
-* @author        Deng Zhimao
-* @email         dengzhimao@alientek.com/1252699831@qq.com
-* @date          2024-09-05
-* @link          http://www.openedv.com/forum.php
-*******************************************************************/
 
 import QtQuick 2.12
 
@@ -23,7 +15,7 @@ Item {
         anchors.fill: parent
         spacing: 0
 
-        // 1. 日期(34pt 居中)
+        // 日期
         Item {
             width: parent.width
             height: 68
@@ -37,7 +29,7 @@ Item {
             }
         }
 
-        // 2. 图标(235x235 居中,左右 27px spacer)
+        // 图标
         Item {
             width: parent.width
             height: 235
@@ -54,7 +46,7 @@ Item {
             }
         }
 
-        // 3. 天气文字(25pt 居中)
+        // 天气文字
         Item {
             width: parent.width
             height: 50
@@ -68,7 +60,7 @@ Item {
             }
         }
 
-        // 4. 温度范围(25pt 居中, "19～30℃")
+        // 温度范围
         Item {
             width: parent.width
             height: 50

@@ -4,11 +4,9 @@
 
 namespace
 {
-    constexpr int kPushIntervalMs = 20; // 20ms推一帧，但是做了是否最新帧判断，
+    constexpr int kPushIntervalMs = 20; // 20ms推一帧,但是做了是否最新帧判断，实际推流是15 Fps ~ 67ms,
     constexpr int kStreamFps = 15;      // caps 与 PTS 都按 15FPS 声明,与真实产出频率一致
 }
-
-/* =========================== 生命周期 =========================== */
 
 RtspServerWorker::RtspServerWorker(JpegFrameStore *store,
                                    int port,
